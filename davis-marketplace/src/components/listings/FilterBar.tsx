@@ -8,6 +8,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 
 const CATEGORIES = [
@@ -67,9 +68,7 @@ export default function FilterBar({ initialCategory = '', initialAvailability = 
     <div className="flex flex-wrap gap-3">
       <Select value={category} onValueChange={handleCategoryChange}>
         <SelectTrigger className="w-44">
-          <span className="flex-1 text-left text-sm">
-            {CATEGORIES.find(c => c.value === category)?.label ?? 'All categories'}
-          </span>
+          <SelectValue placeholder="All categories" />
         </SelectTrigger>
         <SelectContent>
           {CATEGORIES.map(c => (
@@ -79,9 +78,7 @@ export default function FilterBar({ initialCategory = '', initialAvailability = 
       </Select>
       <Select value={availability} onValueChange={handleAvailabilityChange}>
         <SelectTrigger className="w-48">
-          <span className="flex-1 text-left text-sm">
-            {AVAILABILITY.find(a => a.value === availability)?.label ?? 'Any time'}
-          </span>
+          <SelectValue placeholder="Any time" />
         </SelectTrigger>
         <SelectContent>
           {AVAILABILITY.map(a => (

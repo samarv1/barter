@@ -1,0 +1,251 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { CircleUser, ChevronDown, ChevronUp } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { getPublicUrl } from '@/lib/s3'
+import { respondToOffer } from '@/actions/offers'
+import { markAsSold } from '@/actions/listings'
+import type { Thread, OfferEvent } from './page'
+
+const EVENT_LABELS: Record<string, string> = {
+  offer: 'Offer',
+  counter: 'Counter',
+  accepted: 'Accepted',
+  declined: 'Declined',
+}
+
+const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  pending: { label: 'Pending', variant: 'outline' },
+  countered: { label: 'Counter-offer', variant: 'secondary' },
+  accepted: { label: 'Accepted', variant: 'default' },
+  declined: { label: 'Declined', variant: 'destructive' },
+}
+
+function EventTimeline({ events, userId }: { events: OfferEvent[]; userId: string }) {
+  const sorted = [...events].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  return (
+    <div className="space-y-2 py-1">
+      {sorted.map(ev => {
+        const isMe = ev.actor_id === userId
+        return (
+          <div key={ev.id} className={`flex ${isMe ? 'flex-row-reverse' : ''}`}>
+            <div className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${isMe ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[10px] font-medium opacity-70">{isMe ? 'You' : 'Other party'}</span>
+                <span className="text-[10px] opacity-50">·</span>
+                <span className="text-[10px] opacity-70">{EVENT_LABELS[ev.event_type]}</span>
+              </div>
+              {ev.amount !== null && <p className="font-bold">${Number(ev.amount).toFixed(2)}</p>}
+              {ev.message && <p className="text-xs opacity-80 mt-0.5">{ev.message}</p>}
+              <p className="text-[10px] opacity-40 mt-1">
+                {new Date(ev.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [expanded, setExpanded] = useState(false)
+  const [showCounter, setShowCounter] = useState(false)
+  const [counterAmount, setCounterAmount] = useState('')
+  const [counterMessage, setCounterMessage] = useState('')
+  const [markingAsSold, setMarkingAsSold] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const listing = thread.listings
+  const isSeller = userId === listing.seller_id
+  const isMyTurn = (isSeller && thread.current_turn === 'seller') || (!isSeller && thread.current_turn === 'buyer')
+  const isActive = thread.status === 'pending' || thread.status === 'countered'
+  const badge = STATUS_BADGE[thread.status]
+
+  const otherParty = thread.profiles
+  const thumb = listing.photo_keys?.[0]
+
+  function run(fn: () => Promise<void>) {
+    setError(null)
+    startTransition(async () => {
+      try {
+        await fn()
+        router.refresh()
+        setShowCounter(false)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Something went wrong')
+      }
+    })
+  }
+
+  return (
+    <div className={`border rounded-lg overflow-hidden transition-opacity ${!isActive ? 'opacity-60' : ''}`}>
+      {/* Thread header — always visible */}
+      <button
+        className="w-full text-left p-4 flex items-center gap-3 hover:bg-muted/40 transition-colors"
+        onClick={() => setExpanded(v => !v)}
+      >
+        {/* Listing thumbnail */}
+        <div className="h-12 w-12 rounded-md bg-muted overflow-hidden shrink-0">
+          {thumb ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={getPublicUrl(thumb)} alt={listing.title} className="h-full w-full object-cover" />
+          ) : null}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-medium truncate">{listing.title}</p>
+            <Badge variant={badge.variant} className="text-[10px] px-1.5 py-0 h-4 shrink-0">{badge.label}</Badge>
+            {isActive && isMyTurn && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 shrink-0 bg-amber-100 text-amber-800 border-amber-200">Your turn</Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            {otherParty?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={otherParty.avatar_url} alt="" className="h-4 w-4 rounded-full object-cover" referrerPolicy="no-referrer" />
+            ) : (
+              <CircleUser className="h-4 w-4 text-muted-foreground" />
+            )}
+            <span className="text-xs text-muted-foreground truncate">
+              {isSeller ? (otherParty?.display_name || otherParty?.email || 'A buyer') : 'Seller'}
+              {' · '}
+              <span className="font-medium text-foreground">${Number(thread.amount).toFixed(2)}</span>
+            </span>
+          </div>
+        </div>
+
+        {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+      </button>
+
+      {/* Expanded detail */}
+      {expanded && (
+        <div className="border-t px-4 pb-4 space-y-3">
+          <EventTimeline events={thread.offer_events} userId={userId} />
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+
+          {/* Buyer/seller actions when it's my turn */}
+          {isActive && isMyTurn && !showCounter && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                disabled={isPending}
+                onClick={() => run(() => respondToOffer(thread.id, 'accept'))}
+              >
+                Accept ${Number(thread.amount).toFixed(2)}
+              </Button>
+              <Button size="sm" variant="outline" disabled={isPending} onClick={() => setShowCounter(true)}>
+                Counter
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={isPending}
+                onClick={() => run(() => respondToOffer(thread.id, 'decline'))}
+              >
+                Decline
+              </Button>
+            </div>
+          )}
+
+          {isActive && isMyTurn && showCounter && (
+            <div className="space-y-2">
+              <div className="relative w-36">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input type="number" min="0" step="0.01" placeholder="0.00" className="pl-6" value={counterAmount} onChange={e => setCounterAmount(e.target.value)} />
+              </div>
+              <Textarea placeholder="Add a note (optional)" rows={2} value={counterMessage} onChange={e => setCounterMessage(e.target.value)} />
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  disabled={isPending || !counterAmount}
+                  onClick={() => run(() => respondToOffer(thread.id, 'counter', Number(counterAmount), counterMessage || undefined))}
+                >
+                  Send Counter
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setShowCounter(false)}>Cancel</Button>
+              </div>
+            </div>
+          )}
+
+          {isActive && !isMyTurn && (
+            <p className="text-xs text-muted-foreground italic">Waiting for the other party to respond…</p>
+          )}
+
+          {/* Seller: mark as sold (closes listing, declines all other open offers) */}
+          {isSeller && listing.status === 'active' && (
+            <div className="pt-1 border-t flex items-center gap-3">
+              {!markingAsSold ? (
+                <button
+                  className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+                  onClick={() => setMarkingAsSold(true)}
+                >
+                  Mark listing as sold
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground">Close this listing and decline all open offers?</p>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    disabled={isPending}
+                    onClick={() => run(() => markAsSold(listing.id))}
+                  >
+                    Yes, mark sold
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setMarkingAsSold(false)}>Cancel</Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          <Link href={`/listings/${listing.id}`} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 block">
+            View listing →
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function ThreadList({ threads, userId }: { threads: Thread[]; userId: string }) {
+  const active = threads.filter(t => t.status === 'pending' || t.status === 'countered')
+  const archived = threads.filter(t => t.status === 'accepted' || t.status === 'declined')
+
+  if (threads.length === 0) {
+    return (
+      <div className="text-center py-20 text-muted-foreground">
+        <p>No offers yet.</p>
+        <Link href="/my-listings" className="mt-2 inline-block text-sm text-primary hover:underline">Go to my listings →</Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {active.length > 0 && (
+        <section className="space-y-2">
+          {active.map(t => <ThreadCard key={t.id} thread={t} userId={userId} />)}
+        </section>
+      )}
+
+      {archived.length > 0 && (
+        <section className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">Archive</p>
+          {archived.map(t => <ThreadCard key={t.id} thread={t} userId={userId} />)}
+        </section>
+      )}
+    </div>
+  )
+}

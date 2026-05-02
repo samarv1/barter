@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { CircleUser } from 'lucide-react'
+import { Bell, CircleUser } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 
@@ -8,13 +8,15 @@ export default async function Navbar() {
   const { data: { user } } = await supabase.auth.getUser()
 
   let avatarUrl: string | undefined
+  let unreadCount = 0
+
   if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('avatar_url')
-      .eq('id', user.id)
-      .single()
+    const [{ data: profile }, { count }] = await Promise.all([
+      supabase.from('profiles').select('avatar_url').eq('id', user.id).single(),
+      supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('read', false),
+    ])
     avatarUrl = profile?.avatar_url ?? (user.user_metadata.avatar_url as string | undefined)
+    unreadCount = count ?? 0
   }
 
   return (
@@ -25,6 +27,15 @@ export default async function Navbar() {
           <>
             <Button asChild size="sm">
               <Link href="/listings/new">Post listing</Link>
+            </Button>
+            <Button asChild variant="ghost" size="icon" className="relative">
+              <Link href="/inbox">
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
+                )}
+                <span className="sr-only">Inbox</span>
+              </Link>
             </Button>
             <Button asChild variant="ghost" size="icon">
               <Link href="/profile">

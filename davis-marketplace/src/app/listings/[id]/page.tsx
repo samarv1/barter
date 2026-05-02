@@ -8,6 +8,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import Navbar from '@/components/nav/Navbar'
 import DeleteButton from './DeleteButton'
+import OfferSection from './OfferSection'
+import OffersPanel from './OffersPanel'
 
 const AVAILABILITY_LABELS: Record<string, string> = {
   asap: 'ASAP — available now',
@@ -38,6 +40,47 @@ export default async function ListingDetailPage({
 
   const { data: { user } } = await supabase.auth.getUser()
   const isSeller = user?.id === listing.seller_id
+
+  // Buyer: fetch their existing offer + its events
+  let buyerOffer = null
+  let buyerOfferEvents: {
+    id: string; actor_id: string; event_type: 'offer' | 'counter' | 'accepted' | 'declined';
+    amount: number | null; message: string | null; created_at: string
+  }[] = []
+  if (user && !isSeller) {
+    const { data: offer } = await supabase
+      .from('offers')
+      .select('id, amount, status, current_turn, message')
+      .eq('listing_id', id)
+      .eq('buyer_id', user.id)
+      .maybeSingle()
+    if (offer) {
+      buyerOffer = offer
+      const { data: events } = await supabase
+        .from('offer_events')
+        .select('id, actor_id, event_type, amount, message, created_at')
+        .eq('offer_id', offer.id)
+        .order('created_at', { ascending: true })
+      buyerOfferEvents = (events ?? []) as typeof buyerOfferEvents
+    }
+  }
+
+  // Seller: fetch all active offers with buyer profiles + events
+  let sellerOffers: {
+    id: string; buyer_id: string; amount: number; status: 'pending' | 'countered';
+    current_turn: 'buyer' | 'seller'; message: string | null;
+    profiles: { display_name: string | null; email: string; avatar_url: string | null } | null;
+    offer_events: { id: string; actor_id: string; event_type: 'offer' | 'counter' | 'accepted' | 'declined'; amount: number | null; message: string | null; created_at: string }[]
+  }[] = []
+  if (isSeller) {
+    const { data } = await supabase
+      .from('offers')
+      .select('id, buyer_id, amount, status, current_turn, message, profiles(display_name, email, avatar_url), offer_events(id, actor_id, event_type, amount, message, created_at)')
+      .eq('listing_id', id)
+      .in('status', ['pending', 'countered'])
+      .order('created_at', { ascending: false })
+    sellerOffers = (data ?? []) as unknown as typeof sellerOffers
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -108,31 +151,48 @@ export default async function ListingDetailPage({
             </div>
 
             {!isSeller && listing.status === 'active' && (
-              <div className="pt-2">
+              <div>
                 {!user ? (
-                  <Link
-                    href={`/auth/login?redirectTo=/listings/${id}`}
-                    className={cn(buttonVariants(), 'w-full justify-center')}
-                  >
-                    Sign in to make an offer
-                  </Link>
+                  <div className="pt-4 border-t">
+                    <Link
+                      href={`/auth/login?redirectTo=/listings/${id}`}
+                      className={cn(buttonVariants(), 'w-full justify-center')}
+                    >
+                      Sign in to make an offer
+                    </Link>
+                  </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground italic">
-                    Offer flow coming soon.
-                  </p>
+                  <OfferSection
+                    listing={{ id: listing.id, price: listing.price, is_free: listing.is_free }}
+                    existingOffer={buyerOffer}
+                    events={buyerOfferEvents}
+                    userId={user.id}
+                  />
                 )}
               </div>
             )}
 
+            {!isSeller && buyerOffer && listing.status !== 'active' && (
+              <OfferSection
+                listing={{ id: listing.id, price: listing.price, is_free: listing.is_free }}
+                existingOffer={buyerOffer}
+                events={buyerOfferEvents}
+                userId={user!.id}
+              />
+            )}
+
             {isSeller && (
-              <div className="pt-2 flex flex-wrap gap-3 items-center">
-                <Link
-                  href={`/listings/${id}/edit`}
-                  className={buttonVariants({ variant: 'outline' })}
-                >
-                  Edit listing
-                </Link>
-                <DeleteButton id={id} />
+              <div className="pt-2 space-y-4">
+                <OffersPanel offers={sellerOffers} />
+                <div className="flex flex-wrap gap-3 items-center">
+                  <Link
+                    href={`/listings/${id}/edit`}
+                    className={buttonVariants({ variant: 'outline' })}
+                  >
+                    Edit listing
+                  </Link>
+                  <DeleteButton id={id} />
+                </div>
               </div>
             )}
           </CardContent>
