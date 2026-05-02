@@ -1,31 +1,24 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 
-export async function signUp(prevState: string | null, formData: FormData) {
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
-
+export async function signInWithGoogle(redirectTo?: string) {
   const supabase = await createClient()
-  const { error } = await supabase.auth.signUp({ email, password })
+  const origin = (await headers()).get('origin') ?? 'http://localhost:3000'
+  const callbackUrl = redirectTo
+    ? `${origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`
+    : `${origin}/auth/callback`
 
-  if (error) return error.message
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: callbackUrl },
+  })
 
-  return redirect('/auth/check-email')
-}
+  if (error || !data.url) throw error ?? new Error('No OAuth URL returned')
 
-export async function signIn(prevState: string | null, formData: FormData) {
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
-  const redirectTo = formData.get('redirectTo') as string | null
-
-  const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-  if (error) return error.message
-
-  return redirect(redirectTo || '/')
+  redirect(data.url)
 }
 
 export async function signOut() {

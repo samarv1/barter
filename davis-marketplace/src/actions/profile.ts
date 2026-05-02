@@ -2,8 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getPublicUrl } from '@/lib/s3'
 
-export async function updateProfile(prevState: string | null, formData: FormData) {
+export async function updateProfile(_prevState: string | null | undefined, formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return 'Not authenticated'
@@ -18,6 +19,20 @@ export async function updateProfile(prevState: string | null, formData: FormData
 
   if (error) return error.message
 
-  revalidatePath('/profile')
   return null
+}
+
+export async function updateAvatar(key: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ avatar_url: getPublicUrl(key) })
+    .eq('id', user.id)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/', 'layout')
 }

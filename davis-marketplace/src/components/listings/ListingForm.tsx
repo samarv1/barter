@@ -3,15 +3,23 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PhotoUploader from './PhotoUploader'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 const CATEGORIES = [
   { value: 'furniture', label: 'Furniture' },
   { value: 'electronics', label: 'Electronics' },
-  { value: 'clothing', label: 'Clothing' },
-  { value: 'books', label: 'Books' },
-  { value: 'appliances', label: 'Appliances' },
   { value: 'bikes', label: 'Bikes' },
-  { value: 'sports', label: 'Sports' },
   { value: 'other', label: 'Other' },
 ]
 
@@ -24,7 +32,8 @@ const AVAILABILITY = [
 export default function ListingForm() {
   const router = useRouter()
   const [photoKeys, setPhotoKeys] = useState<string[]>([])
-  const [isFree, setIsFree] = useState(false)
+  const [category, setCategory] = useState('')
+  const [availability, setAvailability] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,18 +43,27 @@ export default function ListingForm() {
       setError('Please upload at least one photo.')
       return
     }
+    if (!category) {
+      setError('Please select a category.')
+      return
+    }
+    if (!availability) {
+      setError('Please select a pickup availability.')
+      return
+    }
 
     setSubmitting(true)
     setError(null)
 
     const form = new FormData(e.currentTarget)
+    const priceVal = Number(form.get('price')) || 0
     const body = {
       title: form.get('title'),
       description: form.get('description'),
-      price: isFree ? null : Number(form.get('price')),
-      is_free: isFree,
-      category: form.get('category'),
-      availability: form.get('availability'),
+      price: priceVal === 0 ? null : priceVal,
+      is_free: priceVal === 0,
+      category,
+      availability,
       photo_keys: photoKeys,
     }
 
@@ -67,117 +85,94 @@ export default function ListingForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+      <div className="space-y-2">
+        <Label>
           Photos <span className="text-red-500">*</span>
-        </label>
+        </Label>
         <PhotoUploader onChange={setPhotoKeys} />
       </div>
 
-      <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+      <div className="space-y-1">
+        <Label htmlFor="title">
           Title <span className="text-red-500">*</span>
-        </label>
-        <input
+        </Label>
+        <Input
           id="title"
           name="title"
           type="text"
           required
           maxLength={100}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           placeholder="e.g. IKEA MALM Desk, barely used"
         />
       </div>
 
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-          Description
-        </label>
-        <textarea
+      <div className="space-y-1">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
           id="description"
           name="description"
           rows={4}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           placeholder="Condition, dimensions, any flaws, etc."
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Price</label>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isFree}
-              onChange={e => setIsFree(e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            Free
-          </label>
-          {!isFree && (
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
-              <input
-                name="price"
-                type="number"
-                min="0"
-                step="0.01"
-                required={!isFree}
-                className="pl-7 block w-36 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="0.00"
-              />
-            </div>
-          )}
+      <div className="space-y-1">
+        <Label htmlFor="price">Price</Label>
+        <div className="relative w-36">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+          <Input
+            id="price"
+            name="price"
+            type="number"
+            min="0"
+            step="0.01"
+            className="pl-6"
+            placeholder="0.00"
+          />
         </div>
       </div>
 
-      <div>
-        <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+      <div className="space-y-1">
+        <Label htmlFor="category">
           Category <span className="text-red-500">*</span>
-        </label>
-        <select
-          id="category"
-          name="category"
-          required
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        >
-          <option value="">Select a category</option>
-          {CATEGORIES.map(c => (
-            <option key={c.value} value={c.value}>{c.label}</option>
-          ))}
-        </select>
+        </Label>
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger id="category" className="w-full">
+            <SelectValue placeholder="Select a category" />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map(c => (
+              <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <div>
-        <label htmlFor="availability" className="block text-sm font-medium text-gray-700">
+      <div className="space-y-1">
+        <Label htmlFor="availability">
           Pickup availability <span className="text-red-500">*</span>
-        </label>
-        <select
-          id="availability"
-          name="availability"
-          required
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        >
-          <option value="">Select availability</option>
-          {AVAILABILITY.map(a => (
-            <option key={a.value} value={a.value}>{a.label}</option>
-          ))}
-        </select>
+        </Label>
+        <Select value={availability} onValueChange={setAvailability}>
+          <SelectTrigger id="availability" className="w-full">
+            <SelectValue placeholder="Select availability" />
+          </SelectTrigger>
+          <SelectContent>
+            {AVAILABILITY.map(a => (
+              <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-          {error}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="w-full rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
+      <Button type="submit" disabled={submitting} className="w-full">
         {submitting ? 'Posting…' : 'Post listing'}
-      </button>
+      </Button>
     </form>
   )
 }

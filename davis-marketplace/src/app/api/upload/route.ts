@@ -13,10 +13,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No files provided' }, { status: 400 })
   }
 
+  const prefix = request.nextUrl.searchParams.get('prefix') ?? 'listings'
   const results = await Promise.all(
     files.map(async ({ filename, contentType }) => {
       const ext = filename.split('.').pop() ?? 'bin'
-      const key = `listings/${user.id}/${randomUUID()}.${ext}`
+      const key = `${prefix}/${user.id}/${randomUUID()}.${ext}`
       const url = await generatePresignedPutUrl(key, contentType)
       return { url, key }
     })

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { getPublicUrl } from '@/lib/s3'
+import { Button } from '@/components/ui/button'
 
 interface UploadedPhoto {
   key: string
@@ -10,6 +11,22 @@ interface UploadedPhoto {
 
 interface Props {
   onChange: (keys: string[]) => void
+}
+
+async function normalizeFile(file: File): Promise<File> {
+  const isHeic =
+    file.type === 'image/heic' ||
+    file.type === 'image/heif' ||
+    file.name.toLowerCase().endsWith('.heic') ||
+    file.name.toLowerCase().endsWith('.heif')
+
+  if (!isHeic) return file
+
+  const heic2any = (await import('heic2any')).default
+  const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 })
+  const converted = Array.isArray(blob) ? blob[0] : blob
+  const newName = file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg')
+  return new File([converted], newName, { type: 'image/jpeg' })
 }
 
 export default function PhotoUploader({ onChange }: Props) {
@@ -22,7 +39,8 @@ export default function PhotoUploader({ onChange }: Props) {
     setError(null)
     setUploading(true)
     try {
-      const payload = Array.from(files).map(f => ({ filename: f.name, contentType: f.type }))
+      const normalized = await Promise.all(Array.from(files).map(normalizeFile))
+      const payload = normalized.map(f => ({ filename: f.name, contentType: f.type }))
       const res = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,7 +51,7 @@ export default function PhotoUploader({ onChange }: Props) {
 
       const uploadResponses = await Promise.all(
         results.map(({ url }, i) =>
-          fetch(url, { method: 'PUT', body: files[i], headers: { 'Content-Type': files[i].type } })
+          fetch(url, { method: 'PUT', body: normalized[i], headers: { 'Content-Type': normalized[i].type } })
         )
       )
       const failed = uploadResponses.find(r => !r.ok)
@@ -41,7 +59,7 @@ export default function PhotoUploader({ onChange }: Props) {
 
       const newPhotos = results.map(({ key }, i) => ({
         key,
-        previewUrl: URL.createObjectURL(files[i]),
+        previewUrl: URL.createObjectURL(normalized[i]),
       }))
 
       const updated = [...photos, ...newPhotos]
@@ -67,21 +85,24 @@ export default function PhotoUploader({ onChange }: Props) {
           <div key={photo.key} className="relative w-24 h-24 rounded-md overflow-hidden border border-gray-200">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photo.previewUrl} alt="" className="w-full h-full object-cover" />
-            <button
+            <Button
               type="button"
+              size="icon"
+              variant="ghost"
               onClick={() => remove(photo.key)}
-              className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-black/80"
+              className="absolute top-0.5 right-0.5 h-5 w-5 bg-black/60 text-white hover:bg-black/80 hover:text-white rounded-full"
             >
               ×
-            </button>
+            </Button>
           </div>
         ))}
 
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="w-24 h-24 rounded-md border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-blue-400 hover:text-blue-500 disabled:opacity-50 text-xs gap-1"
+          className="w-24 h-24 rounded-md border-dashed flex flex-col items-center justify-center text-xs gap-1"
         >
           {uploading ? (
             <span>Uploading…</span>
@@ -91,7 +112,7 @@ export default function PhotoUploader({ onChange }: Props) {
               <span>Add photo</span>
             </>
           )}
-        </button>
+        </Button>
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -102,7 +123,7 @@ export default function PhotoUploader({ onChange }: Props) {
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif"
         multiple
         className="hidden"
         onChange={e => e.target.files && handleFiles(e.target.files)}

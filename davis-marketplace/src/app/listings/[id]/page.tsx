@@ -2,6 +2,12 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getPublicUrl } from '@/lib/s3'
+import { Badge } from '@/components/ui/badge'
+import { buttonVariants } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import Navbar from '@/components/nav/Navbar'
+import DeleteButton from './DeleteButton'
 
 const AVAILABILITY_LABELS: Record<string, string> = {
   asap: 'ASAP — available now',
@@ -24,7 +30,7 @@ export default async function ListingDetailPage({
 
   const { data: listing } = await supabase
     .from('listings')
-    .select('*, profiles(display_name, email)')
+    .select('*, profiles(display_name, email, avatar_url)')
     .eq('id', id)
     .single()
 
@@ -34,27 +40,15 @@ export default async function ListingDetailPage({
   const isSeller = user?.id === listing.seller_id
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="font-bold text-lg text-gray-900">Davis Marketplace</Link>
-        <div className="flex items-center gap-3 text-sm">
-          {user ? (
-            <>
-              <Link href="/notifications" className="text-gray-600 hover:text-gray-900">Notifications</Link>
-              <Link href="/profile" className="text-gray-600 hover:text-gray-900">Profile</Link>
-            </>
-          ) : (
-            <Link href="/auth/login" className="text-gray-600 hover:text-gray-900">Sign in</Link>
-          )}
-        </div>
-      </nav>
+    <div className="min-h-screen bg-background">
+      <Navbar />
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <Link href="/" className="text-sm text-blue-600 hover:underline mb-6 inline-block">
+        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-block">
           ← Back to listings
         </Link>
 
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <Card className="p-0 gap-0 overflow-hidden">
           {/* Photo gallery */}
           <div className="flex gap-2 p-4 overflow-x-auto">
             {listing.photo_keys.map((key: string, i: number) => (
@@ -68,33 +62,49 @@ export default async function ListingDetailPage({
             ))}
           </div>
 
-          <div className="p-6 space-y-4">
+          <CardContent className="p-6 space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{listing.title}</h1>
-                <p className="text-2xl font-bold text-blue-600 mt-1">
+                <h1 className="text-2xl font-bold">{listing.title}</h1>
+                <p className="text-2xl font-bold text-primary mt-1">
                   {formatPrice(listing.price, listing.is_free)}
                 </p>
               </div>
               {listing.status === 'claimed' && (
-                <span className="shrink-0 bg-gray-100 text-gray-600 text-sm font-medium px-3 py-1 rounded-full">
-                  Claimed
-                </span>
+                <Badge variant="secondary" className="shrink-0">Claimed</Badge>
               )}
             </div>
 
-            <div className="flex gap-4 text-sm text-gray-600">
+            <div className="flex gap-4 text-sm text-muted-foreground">
               <span className="capitalize">{listing.category}</span>
               <span>·</span>
               <span>{AVAILABILITY_LABELS[listing.availability] ?? listing.availability}</span>
             </div>
 
             {listing.description && (
-              <p className="text-gray-700 text-sm whitespace-pre-wrap">{listing.description}</p>
+              <p className="text-sm whitespace-pre-wrap">{listing.description}</p>
             )}
 
-            <div className="pt-2 border-t border-gray-100 text-sm text-gray-500">
-              Posted by {(listing.profiles as { display_name: string | null; email: string })?.display_name || 'a Davis student'}
+            <div className="pt-2 border-t flex items-center gap-2">
+              {(() => {
+                const seller = listing.profiles as { display_name: string | null; email: string; avatar_url: string | null }
+                return (
+                  <>
+                    {seller?.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={seller.avatar_url}
+                        alt={seller.display_name ?? 'Seller'}
+                        className="h-7 w-7 rounded-full object-cover shrink-0"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : null}
+                    <span className="text-sm text-muted-foreground">
+                      Posted by <span className="text-foreground font-medium">{seller?.display_name || 'a Davis student'}</span>
+                    </span>
+                  </>
+                )
+              })()}
             </div>
 
             {!isSeller && listing.status === 'active' && (
@@ -102,12 +112,12 @@ export default async function ListingDetailPage({
                 {!user ? (
                   <Link
                     href={`/auth/login?redirectTo=/listings/${id}`}
-                    className="block w-full text-center rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+                    className={cn(buttonVariants(), 'w-full justify-center')}
                   >
                     Sign in to make an offer
                   </Link>
                 ) : (
-                  <p className="text-sm text-gray-500 italic">
+                  <p className="text-sm text-muted-foreground italic">
                     Offer flow coming soon.
                   </p>
                 )}
@@ -115,17 +125,18 @@ export default async function ListingDetailPage({
             )}
 
             {isSeller && (
-              <div className="pt-2 flex gap-3">
+              <div className="pt-2 flex flex-wrap gap-3 items-center">
                 <Link
                   href={`/listings/${id}/edit`}
-                  className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className={buttonVariants({ variant: 'outline' })}
                 >
                   Edit listing
                 </Link>
+                <DeleteButton id={id} />
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
