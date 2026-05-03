@@ -5,7 +5,7 @@ import Navbar from '@/components/nav/Navbar'
 import { Button } from '@/components/ui/button'
 import MyListingCard from './MyListingCard'
 
-export const metadata = { title: 'My Listings — Davis Marketplace' }
+export const metadata = { title: 'My Listings — Barter' }
 
 export default async function MyListingsPage() {
   const supabase = await createClient()

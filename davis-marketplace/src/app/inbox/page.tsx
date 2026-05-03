@@ -3,7 +3,7 @@ import Navbar from '@/components/nav/Navbar'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import ThreadList from './ThreadList'
 
-export const metadata = { title: 'Inbox — Davis Marketplace' }
+export const metadata = { title: 'Inbox — Barter' }
 
 export default async function InboxPage() {
   const supabase = await createClient()
@@ -14,9 +14,9 @@ export default async function InboxPage() {
   const { data: rawThreads } = await supabase
     .from('offers')
     .select(`
-      id, listing_id, buyer_id, amount, status, current_turn, message, updated_at,
-      listings(id, title, photo_keys, status, seller_id),
-      profiles!buyer_id(display_name, avatar_url, email),
+      id, listing_id, buyer_id, amount, offer_type, status, current_turn, message, updated_at,
+      listings(id, title, photo_keys, status, seller_id, profiles(display_name, avatar_url, email, phone)),
+      profiles!buyer_id(display_name, avatar_url, email, phone),
       offer_events(id, actor_id, event_type, amount, message, created_at)
     `)
     .order('updated_at', { ascending: false })
@@ -57,6 +57,7 @@ export type Thread = {
   listing_id: string
   buyer_id: string
   amount: number
+  offer_type: 'claim' | 'negotiation'
   status: 'pending' | 'accepted' | 'declined' | 'countered'
   current_turn: 'buyer' | 'seller'
   message: string | null
@@ -67,7 +68,8 @@ export type Thread = {
     photo_keys: string[]
     status: string
     seller_id: string
+    profiles: { display_name: string | null; avatar_url: string | null; email: string; phone: string | null } | null
   }
-  profiles: { display_name: string | null; avatar_url: string | null; email: string } | null
+  profiles: { display_name: string | null; avatar_url: string | null; email: string; phone: string | null } | null
   offer_events: OfferEvent[]
 }

@@ -11,6 +11,7 @@ import { claimAtListedPrice, makeOffer, respondToOffer } from '@/actions/offers'
 type Offer = {
   id: string
   amount: number
+  offer_type: 'claim' | 'negotiation'
   status: 'pending' | 'accepted' | 'declined' | 'countered'
   current_turn: 'buyer' | 'seller'
   message: string | null
@@ -31,11 +32,19 @@ type Listing = {
   is_free: boolean
 }
 
+type SellerProfile = {
+  display_name: string | null
+  email: string
+  avatar_url: string | null
+  phone: string | null
+}
+
 interface Props {
   listing: Listing
   existingOffer: Offer | null
   events: OfferEvent[]
   userId: string
+  sellerProfile?: SellerProfile | null
 }
 
 const EVENT_LABELS: Record<string, string> = {
@@ -51,6 +60,7 @@ function formatAmount(amount: number | null, isFree: boolean) {
 }
 
 function EventTimeline({ events, userId }: { events: OfferEvent[]; userId: string }) {
+  if (events.length === 0) return null
   return (
     <div className="space-y-3 py-2">
       {events.map(ev => {
@@ -79,7 +89,7 @@ function EventTimeline({ events, userId }: { events: OfferEvent[]; userId: strin
   )
 }
 
-export default function OfferSection({ listing, existingOffer, events, userId }: Props) {
+export default function OfferSection({ listing, existingOffer, events, userId, sellerProfile }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showOfferForm, setShowOfferForm] = useState(false)
@@ -102,40 +112,43 @@ export default function OfferSection({ listing, existingOffer, events, userId }:
     })
   }
 
-  // ── Accepted state ──────────────────────────────────────────────────────────
+  // Accepted
   if (existingOffer?.status === 'accepted') {
     return (
       <div className="pt-4 border-t space-y-3">
         <EventTimeline events={events} userId={userId} />
-        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
-          <p className="font-semibold">Claimed! Arrange pickup with the seller.</p>
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 space-y-0.5 text-sm text-green-800">
+          <p className="font-semibold">Claimed — arrange pickup with the seller</p>
+          {sellerProfile && (
+            <>
+              {sellerProfile.display_name && (
+                <p>{sellerProfile.display_name}</p>
+              )}
+              <a href={`mailto:${sellerProfile.email}`} className="underline block">
+                {sellerProfile.email}
+              </a>
+              {sellerProfile.phone && <p>{sellerProfile.phone}</p>}
+            </>
+          )}
         </div>
       </div>
     )
   }
 
-  // ── Declined state ──────────────────────────────────────────────────────────
-  if (existingOffer?.status === 'declined') {
+  // Awaiting seller
+  if (existingOffer && existingOffer.status !== 'declined' && existingOffer.current_turn === 'seller') {
     return (
-      <div className="pt-4 border-t space-y-3">
+      <div className="pt-2 border-t space-y-1">
         <EventTimeline events={events} userId={userId} />
-        <p className="text-sm text-muted-foreground italic">This offer was declined.</p>
+        <p className="text-sm text-muted-foreground italic">
+          {existingOffer.offer_type === 'claim' ? 'Awaiting seller confirmation…' : 'Awaiting seller response…'}
+        </p>
       </div>
     )
   }
 
-  // ── Existing offer — awaiting seller ───────────────────────────────────────
-  if (existingOffer && existingOffer.current_turn === 'seller') {
-    return (
-      <div className="pt-4 border-t space-y-3">
-        <EventTimeline events={events} userId={userId} />
-        <p className="text-sm text-muted-foreground italic">Awaiting seller response…</p>
-      </div>
-    )
-  }
-
-  // ── Existing offer — buyer's turn (counter received) ───────────────────────
-  if (existingOffer && existingOffer.current_turn === 'buyer') {
+  // Counter received — buyer's turn
+  if (existingOffer && existingOffer.status !== 'declined' && existingOffer.current_turn === 'buyer') {
     return (
       <div className="pt-4 border-t space-y-3">
         <EventTimeline events={events} userId={userId} />
@@ -147,7 +160,7 @@ export default function OfferSection({ listing, existingOffer, events, userId }:
               disabled={isPending}
               onClick={() => run(() => respondToOffer(existingOffer.id, 'accept'))}
             >
-              Accept {formatAmount(existingOffer.amount, listing.is_free)}
+              Accept {formatAmount(existingOffer.amount, false)}
             </Button>
             <Button
               size="sm"
@@ -204,9 +217,19 @@ export default function OfferSection({ listing, existingOffer, events, userId }:
     )
   }
 
-  // ── No existing offer — initial offer UI ───────────────────────────────────
+  // No offer yet, or re-offer after a decline
   return (
     <div className="pt-4 border-t space-y-3">
+      {existingOffer?.status === 'declined' && (
+        <>
+          <EventTimeline events={events} userId={userId} />
+          <p className="text-xs text-muted-foreground italic">
+            {events.filter(e => e.event_type === 'declined').at(-1)?.actor_id === userId
+              ? 'You declined — make a new offer below.'
+              : 'The seller declined your offer — make a new one below.'}
+          </p>
+        </>
+      )}
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {listing.is_free ? (

@@ -32,7 +32,7 @@ export default async function ListingDetailPage({
 
   const { data: listing } = await supabase
     .from('listings')
-    .select('*, profiles(display_name, email, avatar_url)')
+    .select('*, profiles(display_name, email, avatar_url, phone)')
     .eq('id', id)
     .single()
 
@@ -50,7 +50,7 @@ export default async function ListingDetailPage({
   if (user && !isSeller) {
     const { data: offer } = await supabase
       .from('offers')
-      .select('id, amount, status, current_turn, message')
+      .select('id, amount, offer_type, status, current_turn, message')
       .eq('listing_id', id)
       .eq('buyer_id', user.id)
       .maybeSingle()
@@ -67,15 +67,15 @@ export default async function ListingDetailPage({
 
   // Seller: fetch all active offers with buyer profiles + events
   let sellerOffers: {
-    id: string; buyer_id: string; amount: number; status: 'pending' | 'countered';
-    current_turn: 'buyer' | 'seller'; message: string | null;
+    id: string; buyer_id: string; amount: number; offer_type: 'claim' | 'negotiation';
+    status: 'pending' | 'countered'; current_turn: 'buyer' | 'seller'; message: string | null;
     profiles: { display_name: string | null; email: string; avatar_url: string | null } | null;
     offer_events: { id: string; actor_id: string; event_type: 'offer' | 'counter' | 'accepted' | 'declined'; amount: number | null; message: string | null; created_at: string }[]
   }[] = []
   if (isSeller) {
     const { data } = await supabase
       .from('offers')
-      .select('id, buyer_id, amount, status, current_turn, message, profiles(display_name, email, avatar_url), offer_events(id, actor_id, event_type, amount, message, created_at)')
+      .select('id, buyer_id, amount, offer_type, status, current_turn, message, profiles(display_name, email, avatar_url), offer_events(id, actor_id, event_type, amount, message, created_at)')
       .eq('listing_id', id)
       .in('status', ['pending', 'countered'])
       .order('created_at', { ascending: false })
@@ -167,6 +167,7 @@ export default async function ListingDetailPage({
                     existingOffer={buyerOffer}
                     events={buyerOfferEvents}
                     userId={user.id}
+                    sellerProfile={listing.profiles as { display_name: string | null; email: string; avatar_url: string | null; phone: string | null }}
                   />
                 )}
               </div>
@@ -178,12 +179,13 @@ export default async function ListingDetailPage({
                 existingOffer={buyerOffer}
                 events={buyerOfferEvents}
                 userId={user!.id}
+                sellerProfile={listing.profiles as { display_name: string | null; email: string; avatar_url: string | null; phone: string | null }}
               />
             )}
 
             {isSeller && (
               <div className="pt-2 space-y-4">
-                <OffersPanel offers={sellerOffers} />
+                <OffersPanel offers={sellerOffers} isFree={listing.is_free} />
                 <div className="flex flex-wrap gap-3 items-center">
                   <Link
                     href={`/listings/${id}/edit`}

@@ -15,7 +15,7 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-muted/40 px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Davis Marketplace</CardTitle>
+          <CardTitle className="text-2xl">Barter</CardTitle>
           <CardDescription>
             Buy and sell with the UC Davis community.
           </CardDescription>

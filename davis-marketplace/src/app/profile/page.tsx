@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -53,9 +52,6 @@ export default async function ProfilePage() {
           </div>
 
           <div className="flex flex-col gap-2 shrink-0">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/my-listings">My listings</Link>
-            </Button>
             <form action={signOut}>
               <Button type="submit" variant="ghost" size="sm" className="w-full">Sign out</Button>
             </form>

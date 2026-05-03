@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Davis Marketplace",
+  title: "Barter",
   description: "Buy and sell anything with UC Davis students.",
 };
 

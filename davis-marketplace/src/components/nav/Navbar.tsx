@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { Bell, CircleUser } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
+import ProfileMenu from './ProfileMenu'
 
 export default async function Navbar() {
   const supabase = await createClient()
@@ -11,17 +12,17 @@ export default async function Navbar() {
   let unreadCount = 0
 
   if (user) {
-    const [{ data: profile }, { count }] = await Promise.all([
+    const [{ data: profile }, { data: unread }] = await Promise.all([
       supabase.from('profiles').select('avatar_url').eq('id', user.id).single(),
-      supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('read', false),
+      supabase.from('notifications').select('id').eq('user_id', user.id).eq('read', false).limit(1),
     ])
     avatarUrl = profile?.avatar_url ?? (user.user_metadata.avatar_url as string | undefined)
-    unreadCount = count ?? 0
+    unreadCount = unread?.length ?? 0
   }
 
   return (
     <nav className="bg-background border-b px-4 py-3 flex items-center justify-between">
-      <Link href="/" className="font-bold text-lg">Davis Marketplace</Link>
+      <Link href="/" className="font-bold text-lg">Barter</Link>
       <div className="flex items-center gap-2">
         {user ? (
           <>
@@ -37,22 +38,7 @@ export default async function Navbar() {
                 <span className="sr-only">Inbox</span>
               </Link>
             </Button>
-            <Button asChild variant="ghost" size="icon">
-              <Link href="/profile">
-                {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatarUrl}
-                    alt="Profile"
-                    className="h-7 w-7 rounded-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <CircleUser className="h-5 w-5" />
-                )}
-                <span className="sr-only">Profile</span>
-              </Link>
-            </Button>
+            <ProfileMenu avatarUrl={avatarUrl} />
           </>
         ) : (
           <>

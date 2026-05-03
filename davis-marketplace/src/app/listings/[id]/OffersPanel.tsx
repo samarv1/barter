@@ -22,6 +22,7 @@ type SellerOffer = {
   id: string
   buyer_id: string
   amount: number
+  offer_type: 'claim' | 'negotiation'
   status: 'pending' | 'countered'
   current_turn: 'buyer' | 'seller'
   message: string | null
@@ -31,6 +32,7 @@ type SellerOffer = {
 
 interface Props {
   offers: SellerOffer[]
+  isFree: boolean
 }
 
 const EVENT_LABELS: Record<string, string> = {
@@ -40,7 +42,7 @@ const EVENT_LABELS: Record<string, string> = {
   declined: 'Declined',
 }
 
-function OfferCard({ offer }: { offer: SellerOffer }) {
+function OfferCard({ offer, isFree }: { offer: SellerOffer; isFree: boolean }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showHistory, setShowHistory] = useState(false)
@@ -83,6 +85,9 @@ function OfferCard({ offer }: { offer: SellerOffer }) {
         </div>
         <div className="ml-auto flex items-center gap-2 shrink-0">
           <span className="text-sm font-bold">${Number(offer.amount).toFixed(2)}</span>
+          {offer.offer_type === 'claim' && (
+            <Badge variant="outline" className="text-xs">Full price</Badge>
+          )}
           {!isMyTurn && (
             <Badge variant="outline" className="text-xs">Awaiting buyer</Badge>
           )}
@@ -128,14 +133,16 @@ function OfferCard({ offer }: { offer: SellerOffer }) {
           >
             Accept ${Number(offer.amount).toFixed(2)}
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={isPending}
-            onClick={() => setShowCounter(true)}
-          >
-            Counter
-          </Button>
+          {!isFree && offer.offer_type !== 'claim' && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isPending}
+              onClick={() => setShowCounter(true)}
+            >
+              Counter
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"
@@ -183,7 +190,7 @@ function OfferCard({ offer }: { offer: SellerOffer }) {
   )
 }
 
-export default function OffersPanel({ offers }: Props) {
+export default function OffersPanel({ offers, isFree }: Props) {
   if (offers.length === 0) return null
 
   return (
@@ -192,7 +199,7 @@ export default function OffersPanel({ offers }: Props) {
         Offers ({offers.length})
       </h2>
       {offers.map(offer => (
-        <OfferCard key={offer.id} offer={offer} />
+        <OfferCard key={offer.id} offer={offer} isFree={isFree} />
       ))}
     </div>
   )

@@ -1,8 +1,8 @@
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-const FROM = process.env.RESEND_FROM_EMAIL ?? 'Davis Marketplace <onboarding@resend.dev>'
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+const FROM = process.env.RESEND_FROM_EMAIL ?? 'Barter <onboarding@resend.dev>'
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
 
 async function send(to: string, subject: string, text: string) {
   if (!process.env.RESEND_API_KEY) return
@@ -51,6 +51,15 @@ export async function emailCounterOffer(to: string, listingTitle: string, amount
     to,
     `Counter-offer on "${listingTitle}"`,
     `A counter-offer of $${amount.toFixed(2)} was made on "${listingTitle}".\n\nView and respond: ${BASE_URL}/inbox`
+  )
+}
+
+export async function emailClaimAtPrice(to: string, listingTitle: string, amount: number, isFree: boolean, listingId: string) {
+  const priceText = isFree ? 'free' : `$${amount.toFixed(2)}`
+  await send(
+    to,
+    `Someone wants to claim "${listingTitle}"`,
+    `A buyer wants to claim your listing "${listingTitle}" at the listed price (${priceText}).\n\nAccept or decline in your inbox: ${BASE_URL}/inbox\n\nOr view the listing: ${BASE_URL}/listings/${listingId}`
   )
 }
 

@@ -151,6 +151,7 @@ CREATE TABLE public.offers (
   amount       numeric(10, 2) NOT NULL,
   status       text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','declined','countered')),
   current_turn text NOT NULL DEFAULT 'seller' CHECK (current_turn IN ('buyer','seller')),
+  offer_type   text NOT NULL DEFAULT 'negotiation' CHECK (offer_type IN ('claim','negotiation')),
   message      text,
   created_at   timestamptz NOT NULL DEFAULT now(),
   updated_at   timestamptz NOT NULL DEFAULT now(),

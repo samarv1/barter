@@ -67,10 +67,12 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
   const listing = thread.listings
   const isSeller = userId === listing.seller_id
   const isMyTurn = (isSeller && thread.current_turn === 'seller') || (!isSeller && thread.current_turn === 'buyer')
-  const isActive = thread.status === 'pending' || thread.status === 'countered'
+  const isActive = thread.status !== 'declined'
   const badge = STATUS_BADGE[thread.status]
 
-  const otherParty = thread.profiles
+  const otherParty = isSeller
+    ? thread.profiles
+    : listing.profiles as typeof thread.profiles
   const thumb = listing.photo_keys?.[0]
 
   function run(fn: () => Promise<void>) {
@@ -133,6 +135,25 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
         <div className="border-t px-4 pb-4 space-y-3">
           <EventTimeline events={thread.offer_events} userId={userId} />
 
+          {thread.status === 'accepted' && (
+            <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 space-y-0.5">
+              <p className="text-sm font-semibold text-green-800">Claimed — arrange pickup</p>
+              {otherParty && (
+                <>
+                  {otherParty.display_name && (
+                    <p className="text-sm text-green-700">{otherParty.display_name}</p>
+                  )}
+                  <a href={`mailto:${otherParty.email}`} className="text-sm text-green-700 underline block">
+                    {otherParty.email}
+                  </a>
+                  {otherParty.phone && (
+                    <p className="text-sm text-green-700">{otherParty.phone}</p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           {/* Buyer/seller actions when it's my turn */}
@@ -145,9 +166,11 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
               >
                 Accept ${Number(thread.amount).toFixed(2)}
               </Button>
-              <Button size="sm" variant="outline" disabled={isPending} onClick={() => setShowCounter(true)}>
-                Counter
-              </Button>
+              {thread.offer_type !== 'claim' && (
+                <Button size="sm" variant="outline" disabled={isPending} onClick={() => setShowCounter(true)}>
+                  Counter
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="ghost"
@@ -159,7 +182,7 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
             </div>
           )}
 
-          {isActive && isMyTurn && showCounter && (
+          {isActive && isMyTurn && showCounter && thread.offer_type !== 'claim' && (
             <div className="space-y-2">
               <div className="relative w-36">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
@@ -220,8 +243,9 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
 }
 
 export default function ThreadList({ threads, userId }: { threads: Thread[]; userId: string }) {
-  const active = threads.filter(t => t.status === 'pending' || t.status === 'countered')
-  const archived = threads.filter(t => t.status === 'accepted' || t.status === 'declined')
+  const active   = threads.filter(t => t.status === 'pending' || t.status === 'countered')
+  const accepted = threads.filter(t => t.status === 'accepted')
+  const closed   = threads.filter(t => t.status === 'declined')
 
   if (threads.length === 0) {
     return (
@@ -240,10 +264,17 @@ export default function ThreadList({ threads, userId }: { threads: Thread[]; use
         </section>
       )}
 
-      {archived.length > 0 && (
+      {accepted.length > 0 && (
         <section className="space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">Archive</p>
-          {archived.map(t => <ThreadCard key={t.id} thread={t} userId={userId} />)}
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">Pending pickup</p>
+          {accepted.map(t => <ThreadCard key={t.id} thread={t} userId={userId} />)}
+        </section>
+      )}
+
+      {closed.length > 0 && (
+        <section className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">Closed</p>
+          {closed.map(t => <ThreadCard key={t.id} thread={t} userId={userId} />)}
         </section>
       )}
     </div>
