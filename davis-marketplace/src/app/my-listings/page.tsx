@@ -39,6 +39,7 @@ export default async function MyListingsPage() {
 
   const active = listings?.filter(l => l.status === 'active') ?? []
   const claimed = listings?.filter(l => l.status === 'claimed') ?? []
+  const sold = listings?.filter(l => l.status === 'sold') ?? []
 
   return (
     <div className="min-h-screen bg-background">
@@ -64,14 +65,28 @@ export default async function MyListingsPage() {
           </div>
         )}
 
-        {/* Claimed / sold */}
+        {/* Pending pickup (claimed) */}
         {claimed.length > 0 && (
           <section className="space-y-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Sold / Claimed
+              Pending Pickup
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 opacity-60">
               {claimed.map(l => (
+                <MyListingCard key={l.id} listing={l} offerSummary={undefined} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Sold */}
+        {sold.length > 0 && (
+          <section className="space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Sold
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 opacity-60">
+              {sold.map(l => (
                 <MyListingCard key={l.id} listing={l} offerSummary={undefined} />
               ))}
             </div>

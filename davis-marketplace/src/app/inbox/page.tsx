@@ -3,6 +3,7 @@ import Navbar from '@/components/nav/Navbar'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import ThreadList from './ThreadList'
 
+export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Inbox — Barter' }
 
 export default async function InboxPage() {
