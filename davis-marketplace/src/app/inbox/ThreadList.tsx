@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { getPublicUrl } from '@/lib/s3'
 import { respondToOffer } from '@/actions/offers'
-import { markAsSold } from '@/actions/listings'
+import { markAsSold, relistFromAccepted, completeSale } from '@/actions/listings'
 import type { Thread, OfferEvent } from './page'
 
 const EVENT_LABELS: Record<string, string> = {
@@ -62,12 +62,14 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
   const [counterAmount, setCounterAmount] = useState('')
   const [counterMessage, setCounterMessage] = useState('')
   const [markingAsSold, setMarkingAsSold] = useState(false)
+  const [relisting, setRelisting] = useState(false)
+  const [markingComplete, setMarkingComplete] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const listing = thread.listings
   const isSeller = userId === listing.seller_id
   const isMyTurn = (isSeller && thread.current_turn === 'seller') || (!isSeller && thread.current_turn === 'buyer')
-  const isActive = thread.status !== 'declined'
+  const isActive = thread.status !== 'declined' && thread.status !== 'accepted'
   const badge = STATUS_BADGE[thread.status]
 
   const otherParty = isSeller
@@ -136,22 +138,59 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
           <EventTimeline events={thread.offer_events} userId={userId} />
 
           {thread.status === 'accepted' && (
-            <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 space-y-0.5">
-              <p className="text-sm font-semibold text-green-800">Claimed — arrange pickup</p>
-              {otherParty && (
-                <>
-                  {otherParty.display_name && (
-                    <p className="text-sm text-green-700">{otherParty.display_name}</p>
+            <>
+              <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 space-y-0.5">
+                <p className="text-sm font-semibold text-green-800">
+                  {listing.status === 'sold' ? 'Sold — pickup complete' : 'Accepted — arrange pickup'}
+                </p>
+                {otherParty && (
+                  <>
+                    {otherParty.display_name && (
+                      <p className="text-sm text-green-700">{otherParty.display_name}</p>
+                    )}
+                    <a href={`mailto:${otherParty.email}`} className="text-sm text-green-700 underline block">
+                      {otherParty.email}
+                    </a>
+                    {otherParty.phone && (
+                      <p className="text-sm text-green-700">{otherParty.phone}</p>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {isSeller && listing.status === 'claimed' && (
+                <div className="pt-1 border-t space-y-2">
+                  {!relisting && !markingComplete && (
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setRelisting(true)}>
+                        Re-list item
+                      </Button>
+                      <Button size="sm" onClick={() => setMarkingComplete(true)}>
+                        Confirm pickup
+                      </Button>
+                    </div>
                   )}
-                  <a href={`mailto:${otherParty.email}`} className="text-sm text-green-700 underline block">
-                    {otherParty.email}
-                  </a>
-                  {otherParty.phone && (
-                    <p className="text-sm text-green-700">{otherParty.phone}</p>
+                  {relisting && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-xs text-muted-foreground">Re-list this item and cancel the claim?</p>
+                      <Button size="sm" variant="destructive" disabled={isPending} onClick={() => run(() => relistFromAccepted(listing.id))}>
+                        Yes, re-list
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setRelisting(false)}>Cancel</Button>
+                    </div>
                   )}
-                </>
+                  {markingComplete && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-xs text-muted-foreground">Confirm that pickup happened and the sale is complete?</p>
+                      <Button size="sm" disabled={isPending} onClick={() => run(() => completeSale(listing.id))}>
+                        Yes, confirm
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setMarkingComplete(false)}>Cancel</Button>
+                    </div>
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
 
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -214,18 +253,18 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
                   className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
                   onClick={() => setMarkingAsSold(true)}
                 >
-                  Mark listing as sold
+                  Close listing
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
-                  <p className="text-xs text-muted-foreground">Close this listing and decline all open offers?</p>
+                  <p className="text-xs text-muted-foreground">This will remove your listing and decline all open offers. Do this if you've sold it elsewhere.</p>
                   <Button
                     size="sm"
                     variant="destructive"
                     disabled={isPending}
                     onClick={() => run(() => markAsSold(listing.id))}
                   >
-                    Yes, mark sold
+                    Yes, close listing
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setMarkingAsSold(false)}>Cancel</Button>
                 </div>
@@ -233,9 +272,11 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
             </div>
           )}
 
-          <Link href={`/listings/${listing.id}`} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 block">
-            View listing →
-          </Link>
+          {thread.status !== 'accepted' && (
+            <Link href={`/listings/${listing.id}`} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 block">
+              View listing →
+            </Link>
+          )}
         </div>
       )}
     </div>
@@ -243,9 +284,10 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
 }
 
 export default function ThreadList({ threads, userId }: { threads: Thread[]; userId: string }) {
-  const active   = threads.filter(t => t.status === 'pending' || t.status === 'countered')
-  const accepted = threads.filter(t => t.status === 'accepted')
-  const closed   = threads.filter(t => t.status === 'declined')
+  const active        = threads.filter(t => t.status === 'pending' || t.status === 'countered')
+  const pendingPickup = threads.filter(t => t.status === 'accepted' && t.listings.status === 'claimed')
+  const soldThreads   = threads.filter(t => t.status === 'accepted' && t.listings.status === 'sold')
+  const closed        = threads.filter(t => t.status === 'declined')
 
   if (threads.length === 0) {
     return (
@@ -264,10 +306,17 @@ export default function ThreadList({ threads, userId }: { threads: Thread[]; use
         </section>
       )}
 
-      {accepted.length > 0 && (
+      {pendingPickup.length > 0 && (
         <section className="space-y-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">Pending pickup</p>
-          {accepted.map(t => <ThreadCard key={t.id} thread={t} userId={userId} />)}
+          {pendingPickup.map(t => <ThreadCard key={t.id} thread={t} userId={userId} />)}
+        </section>
+      )}
+
+      {soldThreads.length > 0 && (
+        <section className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">Sold</p>
+          {soldThreads.map(t => <ThreadCard key={t.id} thread={t} userId={userId} />)}
         </section>
       )}
 

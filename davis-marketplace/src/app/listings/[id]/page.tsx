@@ -8,6 +8,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import Navbar from '@/components/nav/Navbar'
 import DeleteButton from './DeleteButton'
+import RelistButton from './RelistButton'
+import MarkSoldButton from './MarkSoldButton'
 import OfferSection from './OfferSection'
 import OffersPanel from './OffersPanel'
 
@@ -113,8 +115,10 @@ export default async function ListingDetailPage({
                   {formatPrice(listing.price, listing.is_free)}
                 </p>
               </div>
-              {listing.status === 'claimed' && (
-                <Badge variant="secondary" className="shrink-0">Claimed</Badge>
+              {(listing.status === 'claimed' || listing.status === 'sold') && (
+                <Badge variant="secondary" className="shrink-0">
+                  {listing.status === 'sold' ? 'Sold' : 'Pending sale'}
+                </Badge>
               )}
             </div>
 
@@ -173,6 +177,14 @@ export default async function ListingDetailPage({
               </div>
             )}
 
+            {!isSeller && listing.status === 'claimed' && !buyerOffer && (
+              <div className="pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  This listing has a pending sale. Check back in case it falls through.
+                </p>
+              </div>
+            )}
+
             {!isSeller && buyerOffer && listing.status !== 'active' && (
               <OfferSection
                 listing={{ id: listing.id, price: listing.price, is_free: listing.is_free }}
@@ -186,15 +198,23 @@ export default async function ListingDetailPage({
             {isSeller && (
               <div className="pt-2 space-y-4">
                 <OffersPanel offers={sellerOffers} isFree={listing.is_free} />
-                <div className="flex flex-wrap gap-3 items-center">
-                  <Link
-                    href={`/listings/${id}/edit`}
-                    className={buttonVariants({ variant: 'outline' })}
-                  >
-                    Edit listing
-                  </Link>
-                  <DeleteButton id={id} />
-                </div>
+                {listing.status === 'claimed' && (
+                  <div className="flex flex-wrap gap-3 items-center">
+                    <RelistButton id={id} />
+                    <MarkSoldButton id={id} />
+                  </div>
+                )}
+                {listing.status === 'active' && (
+                  <div className="flex flex-wrap gap-3 items-center">
+                    <Link
+                      href={`/listings/${id}/edit`}
+                      className={buttonVariants({ variant: 'outline' })}
+                    >
+                      Edit listing
+                    </Link>
+                    <DeleteButton id={id} />
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

@@ -75,7 +75,7 @@ CREATE TABLE public.listings (
   category      text NOT NULL CHECK (category IN ('furniture','electronics','clothing','books','appliances','bikes','sports','other')),
   availability  text NOT NULL CHECK (availability IN ('asap','beginning_of_summer','end_of_summer')),
   photo_keys    text[] NOT NULL,
-  status        text NOT NULL DEFAULT 'active' CHECK (status IN ('active','claimed')),
+  status        text NOT NULL DEFAULT 'active' CHECK (status IN ('active','claimed','sold')),
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
@@ -104,7 +104,7 @@ RETURNS SETOF public.listings AS $$
 BEGIN
   RETURN QUERY
   SELECT * FROM public.listings
-  WHERE status = 'active'
+  WHERE status IN ('active', 'claimed')
     AND (
       keyword IS NULL OR
       to_tsvector('english', title || ' ' || coalesce(description, '')) @@
@@ -112,16 +112,18 @@ BEGIN
     )
     AND (filter_category    IS NULL OR category    = filter_category)
     AND (filter_availability IS NULL OR availability = filter_availability)
-  ORDER BY created_at DESC;
+  ORDER BY
+    CASE WHEN status = 'active' THEN 0 ELSE 1 END,
+    created_at DESC;
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 -- RLS
 ALTER TABLE public.listings ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "listings: anyone can read active"
+CREATE POLICY "listings: anyone can read active or claimed"
   ON public.listings FOR SELECT
-  USING (status = 'active' OR auth.uid() = seller_id);
+  USING (status IN ('active', 'claimed') OR auth.uid() = seller_id);
 
 CREATE POLICY "listings: authenticated can insert"
   ON public.listings FOR INSERT

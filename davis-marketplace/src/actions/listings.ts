@@ -75,6 +75,71 @@ export async function markAsSold(listingId: string) {
   revalidatePath('/my-listings')
 }
 
+export async function completeSale(listingId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { data: listing } = await supabase
+    .from('listings')
+    .select('id, seller_id, status')
+    .eq('id', listingId)
+    .single()
+
+  if (!listing || listing.seller_id !== user.id) throw new Error('Unauthorized')
+  if (listing.status !== 'claimed') throw new Error('Listing is not claimed')
+
+  const { error } = await supabase.from('listings').update({ status: 'sold' }).eq('id', listingId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/listings/${listingId}`)
+  revalidatePath('/inbox')
+  revalidatePath('/my-listings')
+  revalidatePath('/')
+}
+
+export async function relistFromAccepted(listingId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { data: listing } = await supabase
+    .from('listings')
+    .select('id, seller_id, status')
+    .eq('id', listingId)
+    .single()
+
+  if (!listing || listing.seller_id !== user.id) throw new Error('Unauthorized')
+  if (listing.status !== 'claimed') throw new Error('Listing is not claimed')
+
+  const service = await createServiceClient()
+
+  const { data: acceptedOffer } = await service
+    .from('offers')
+    .select('id')
+    .eq('listing_id', listingId)
+    .eq('status', 'accepted')
+    .maybeSingle()
+
+  if (acceptedOffer) {
+    await service.from('offers').update({ status: 'declined' }).eq('id', acceptedOffer.id)
+    await service.from('offer_events').insert({
+      offer_id: acceptedOffer.id,
+      actor_id: user.id,
+      event_type: 'declined' as const,
+      amount: null,
+      message: null,
+    })
+  }
+
+  await service.from('listings').update({ status: 'active' }).eq('id', listingId)
+
+  revalidatePath(`/listings/${listingId}`)
+  revalidatePath('/inbox')
+  revalidatePath('/my-listings')
+  revalidatePath('/')
+}
+
 export async function relistListing(listingId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

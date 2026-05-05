@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { getPublicUrl } from '@/lib/s3'
-import { markAsSold, relistListing, deleteMyListing } from '@/actions/listings'
+import { markAsSold, relistFromAccepted, deleteMyListing } from '@/actions/listings'
 
 type Listing = {
   id: string
@@ -40,6 +40,7 @@ export default function MyListingCard({ listing, offerSummary }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   const isActive = listing.status === 'active'
+  const isClaimed = listing.status === 'claimed'
 
   function run(fn: () => Promise<void>) {
     setError(null)
@@ -97,7 +98,7 @@ export default function MyListingCard({ listing, offerSummary }: Props) {
         {/* Actions */}
         {confirming === null ? (
           <div className="flex flex-wrap gap-1 mt-auto pt-1">
-            {isActive ? (
+            {isActive && (
               <>
                 <Button asChild size="sm" variant="outline" className="text-xs h-7 px-2">
                   <Link href={`/listings/${listing.id}/edit`}>Edit</Link>
@@ -121,27 +122,17 @@ export default function MyListingCard({ listing, offerSummary }: Props) {
                   Delete
                 </Button>
               </>
-            ) : (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs h-7 px-2"
-                  disabled={isPending}
-                  onClick={() => setConfirming('relist')}
-                >
-                  Re-list
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-xs h-7 px-2 text-destructive hover:text-destructive"
-                  disabled={isPending}
-                  onClick={() => setConfirming('delete')}
-                >
-                  Delete
-                </Button>
-              </>
+            )}
+            {isClaimed && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs h-7 px-2"
+                disabled={isPending}
+                onClick={() => setConfirming('relist')}
+              >
+                Re-list
+              </Button>
             )}
           </div>
         ) : (
@@ -158,7 +149,7 @@ export default function MyListingCard({ listing, offerSummary }: Props) {
               disabled={isPending}
               onClick={() => {
                 if (confirming === 'sold') run(() => markAsSold(listing.id))
-                else if (confirming === 'relist') run(() => relistListing(listing.id))
+                else if (confirming === 'relist') run(() => relistFromAccepted(listing.id))
                 else if (confirming === 'delete') run(() => deleteMyListing(listing.id))
               }}
             >

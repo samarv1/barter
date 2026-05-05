@@ -41,14 +41,9 @@ export default async function Navbar() {
             <ProfileMenu avatarUrl={avatarUrl} />
           </>
         ) : (
-          <>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/auth/login">Sign in</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/auth/signup">Sign up</Link>
-            </Button>
-          </>
+          <Button asChild size="sm">
+            <Link href="/auth/login">Sign in</Link>
+          </Button>
         )}
       </div>
     </nav>

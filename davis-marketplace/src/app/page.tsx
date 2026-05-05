@@ -55,9 +55,17 @@ export default async function HomePage({
               category: string
               availability: string
               photo_keys: string[]
+              status: string
             }) => (
               <Link key={listing.id} href={`/listings/${listing.id}`}>
-                <Card className="p-0 gap-0 hover:shadow-md transition-shadow cursor-pointer">
+                <Card className={`p-0 gap-0 hover:shadow-md transition-shadow cursor-pointer relative${listing.status === 'claimed' ? ' opacity-60' : ''}`}>
+                  {listing.status === 'claimed' && (
+                    <div className="absolute top-2 left-2 z-10">
+                      <span className="bg-amber-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                        Pending sale
+                      </span>
+                    </div>
+                  )}
                   <div className="aspect-square bg-muted overflow-hidden rounded-t-xl">
                     {listing.photo_keys[0] && (
                       // eslint-disable-next-line @next/next/no-img-element
