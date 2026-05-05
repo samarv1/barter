@@ -70,3 +70,11 @@ export async function emailListingSold(to: string, listingTitle: string, listing
     `The listing "${listingTitle}" has been marked as sold. Your offer was not selected.\n\nView listing: ${BASE_URL}/listings/${listingId}`
   )
 }
+
+export async function emailListingRelisted(to: string, listingTitle: string, listingId: string) {
+  await send(
+    to,
+    `"${listingTitle}" is available again`,
+    `A listing you saved — "${listingTitle}" — is back on the market.\n\nView it: ${BASE_URL}/listings/${listingId}`
+  )
+}

@@ -251,13 +251,43 @@ CREATE POLICY "saved_alerts: owner can delete"
 
 
 -- ─────────────────────────────────────────────
+-- SAVED LISTINGS
+-- ─────────────────────────────────────────────
+
+CREATE TABLE public.saved_listings (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  listing_id uuid NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, listing_id)
+);
+
+ALTER TABLE public.saved_listings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "saved_listings: owner can read"
+  ON public.saved_listings FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "saved_listings: owner can insert"
+  ON public.saved_listings FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "saved_listings: owner can delete"
+  ON public.saved_listings FOR DELETE
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+
+-- ─────────────────────────────────────────────
 -- NOTIFICATIONS
 -- ─────────────────────────────────────────────
 
 CREATE TABLE public.notifications (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  type       text NOT NULL CHECK (type IN ('new_offer','offer_accepted','offer_declined','offer_countered','alert_match')),
+  type       text NOT NULL CHECK (type IN ('new_offer','offer_accepted','offer_declined','offer_countered','alert_match','listing_relisted')),
   message    text NOT NULL,
   link       text,
   read       boolean NOT NULL DEFAULT false,

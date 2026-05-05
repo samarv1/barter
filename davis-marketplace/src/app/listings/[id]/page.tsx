@@ -12,6 +12,7 @@ import RelistButton from './RelistButton'
 import MarkSoldButton from './MarkSoldButton'
 import OfferSection from './OfferSection'
 import OffersPanel from './OffersPanel'
+import SaveButton from './SaveButton'
 
 const AVAILABILITY_LABELS: Record<string, string> = {
   asap: 'ASAP — available now',
@@ -42,6 +43,18 @@ export default async function ListingDetailPage({
 
   const { data: { user } } = await supabase.auth.getUser()
   const isSeller = user?.id === listing.seller_id
+
+  // Buyer: check if they saved this listing
+  let isSaved = false
+  if (user && !isSeller) {
+    const { data: savedRow } = await supabase
+      .from('saved_listings')
+      .select('id')
+      .eq('listing_id', id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    isSaved = !!savedRow
+  }
 
   // Buyer: fetch their existing offer + its events
   let buyerOffer = null
@@ -115,11 +128,18 @@ export default async function ListingDetailPage({
                   {formatPrice(listing.price, listing.is_free)}
                 </p>
               </div>
-              {(listing.status === 'claimed' || listing.status === 'sold') && (
-                <Badge variant="secondary" className="shrink-0">
-                  {listing.status === 'sold' ? 'Sold' : 'Pending sale'}
-                </Badge>
-              )}
+              <div className="flex items-center gap-1 shrink-0">
+                {(listing.status === 'claimed' || listing.status === 'sold') && (
+                  <Badge variant="secondary">
+                    {listing.status === 'sold' ? 'Sold' : 'Pending sale'}
+                  </Badge>
+                )}
+                {!isSeller && (
+                  user
+                    ? <SaveButton authenticated listingId={id} initialSaved={isSaved} />
+                    : <SaveButton authenticated={false} loginHref={`/auth/login?redirectTo=/listings/${id}`} />
+                )}
+              </div>
             </div>
 
             <div className="flex gap-4 text-sm text-muted-foreground">
@@ -180,7 +200,7 @@ export default async function ListingDetailPage({
             {!isSeller && listing.status === 'claimed' && !buyerOffer && (
               <div className="pt-4 border-t">
                 <p className="text-sm text-muted-foreground">
-                  This listing has a pending sale. Check back in case it falls through.
+                  This listing has a pending sale.{user && isSaved ? " You'll be notified if it gets relisted." : user ? ' Save it to get notified if it falls through and gets relisted.' : ''}
                 </p>
               </div>
             )}
