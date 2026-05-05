@@ -44,7 +44,7 @@ function EventTimeline({ events, userId }: { events: OfferEvent[]; userId: strin
               {ev.amount !== null && <p className="font-bold">${Number(ev.amount).toFixed(2)}</p>}
               {ev.message && <p className="text-xs opacity-80 mt-0.5">{ev.message}</p>}
               <p className="text-[10px] opacity-40 mt-1">
-                {new Date(ev.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {new Date(ev.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
           </div>
