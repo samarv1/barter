@@ -9,16 +9,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 function LoginForm() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo') ?? ''
+  const hint = searchParams.get('hint')
   const action = signInWithGoogle.bind(null, redirectTo || undefined)
+
+  const description = hint === 'save'
+    ? 'Sign in to save this listing.'
+    : 'Buy and sell with the UC Davis community.'
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/40 px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Barter</CardTitle>
-          <CardDescription>
-            Buy and sell with the UC Davis community.
-          </CardDescription>
+          <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <form action={action}>

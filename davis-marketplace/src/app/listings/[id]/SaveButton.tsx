@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { Bookmark } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { toggleSaveListing } from '@/actions/saves'
-import Link from 'next/link'
 
 type Props =
   | { authenticated: false; loginHref: string }
@@ -17,30 +16,18 @@ export default function SaveButton(props: Props) {
 
   if (!props.authenticated) {
     return (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Save listing">
-            <Bookmark />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-56 text-sm" align="end">
-          <p className="mb-2">Sign in to save listings and get notified when they&apos;re relisted.</p>
-          <Link href={props.loginHref} className="text-primary hover:underline font-medium">
-            Sign in or create an account →
-          </Link>
-        </PopoverContent>
-      </Popover>
+      <Button asChild variant="ghost" size="icon">
+        <Link href={props.loginHref} aria-label="Sign in to save listing">
+          <Bookmark />
+        </Link>
+      </Button>
     )
   }
 
-  const listingId = props.authenticated ? props.listingId : null
-
   function handleClick() {
-    if (!listingId) return
-    const next = !saved
-    setSaved(next)
+    setSaved(s => !s)
     startTransition(async () => {
-      await toggleSaveListing(listingId, saved)
+      await toggleSaveListing(props.listingId, saved)
     })
   }
 

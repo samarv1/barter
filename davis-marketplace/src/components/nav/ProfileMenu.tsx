@@ -43,7 +43,7 @@ export default function ProfileMenu({ avatarUrl }: Props) {
         <DropdownMenuItem asChild>
           <Link href="/my-listings">My listings</Link>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
+<DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
           onSelect={() => signOut()}

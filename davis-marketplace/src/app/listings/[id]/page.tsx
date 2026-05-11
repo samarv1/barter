@@ -137,7 +137,7 @@ export default async function ListingDetailPage({
                 {!isSeller && (
                   user
                     ? <SaveButton authenticated listingId={id} initialSaved={isSaved} />
-                    : <SaveButton authenticated={false} loginHref={`/auth/login?redirectTo=/listings/${id}`} />
+                    : <SaveButton authenticated={false} loginHref={`/auth/login?redirectTo=/listings/${id}&hint=save`} />
                 )}
               </div>
             </div>

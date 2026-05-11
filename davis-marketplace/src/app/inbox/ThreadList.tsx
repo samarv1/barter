@@ -285,8 +285,8 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
 
 export default function ThreadList({ threads, userId }: { threads: Thread[]; userId: string }) {
   const active        = threads.filter(t => t.status === 'pending' || t.status === 'countered')
-  const pendingPickup = threads.filter(t => t.status === 'accepted' && t.listings.status === 'claimed')
-  const soldThreads   = threads.filter(t => t.status === 'accepted' && t.listings.status === 'sold')
+  const pendingPickup = threads.filter(t => t.status === 'accepted' && t.listings?.status === 'claimed')
+  const soldThreads   = threads.filter(t => t.status === 'accepted' && t.listings?.status === 'sold')
   const closed        = threads.filter(t => t.status === 'declined')
 
   if (threads.length === 0) {

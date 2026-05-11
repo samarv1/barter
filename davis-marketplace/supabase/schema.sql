@@ -311,3 +311,5 @@ CREATE POLICY "notifications: owner can mark read"
   TO authenticated
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;

@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import { Bell } from 'lucide-react'
+import { Bell, Bookmark } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import ProfileMenu from './ProfileMenu'
+import NotificationBubble from './NotificationBubble'
 
 export default async function Navbar() {
   const supabase = await createClient()
@@ -18,6 +19,7 @@ export default async function Navbar() {
     ])
     avatarUrl = profile?.avatar_url ?? (user.user_metadata.avatar_url as string | undefined)
     unreadCount = unread?.length ?? 0
+    console.log('[Navbar] user:', user.id, 'unreadCount:', unreadCount, 'raw:', JSON.stringify(unread))
   }
 
   return (
@@ -27,14 +29,18 @@ export default async function Navbar() {
         {user ? (
           <>
             <Button asChild size="sm">
-              <Link href="/listings/new">Post listing</Link>
+              <Link href="/listings/new">Post</Link>
+            </Button>
+            <Button asChild variant="ghost" size="icon">
+              <Link href="/saved">
+                <Bookmark className="h-5 w-5" />
+                <span className="sr-only">Saved</span>
+              </Link>
             </Button>
             <Button asChild variant="ghost" size="icon" className="relative">
               <Link href="/inbox">
                 <Bell className="h-5 w-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
-                )}
+                <NotificationBubble initialUnread={unreadCount > 0} userId={user.id} />
                 <span className="sr-only">Inbox</span>
               </Link>
             </Button>
