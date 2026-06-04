@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/nav/Navbar'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import ThreadList from './ThreadList'
+import MarkNotificationsRead from './MarkNotificationsRead'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Inbox — Barter' }
@@ -22,19 +23,12 @@ export default async function InboxPage() {
     `)
     .order('updated_at', { ascending: false })
 
-  // Mark all unread notifications as read now that user is viewing inbox
-  const service = await createServiceClient()
-  await service
-    .from('notifications')
-    .update({ read: true })
-    .eq('user_id', user.id)
-    .eq('read', false)
-
   const threads = (rawThreads ?? []) as unknown as Thread[]
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <MarkNotificationsRead userId={user.id} />
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-2">
         <h1 className="text-xl font-bold mb-6">Inbox</h1>
         <ThreadList threads={threads} userId={user.id} />

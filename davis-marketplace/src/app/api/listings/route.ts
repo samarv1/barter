@@ -60,7 +60,7 @@ async function matchAlerts({
   description: string
   sellerId: string
 }) {
-  const serviceSupabase = await createServiceClient()
+  const serviceSupabase = createServiceClient()
 
   const searchText = `${title} ${description ?? ''}`
 
