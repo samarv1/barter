@@ -27,27 +27,62 @@ const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'second
   declined: { label: 'Declined', variant: 'destructive' },
 }
 
-function EventTimeline({ events, userId }: { events: OfferEvent[]; userId: string }) {
+function EventTimeline({
+  events,
+  userId,
+  otherName,
+  selectable,
+  onLatestSelected,
+}: {
+  events: OfferEvent[]
+  userId: string
+  otherName: string
+  selectable: boolean
+  onLatestSelected: (selected: boolean) => void
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
   const sorted = [...events].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  const latestId = sorted[sorted.length - 1]?.id
+
+  function handleSelect(id: string) {
+    const next = selectedId === id ? null : id
+    setSelectedId(next)
+    onLatestSelected(next === latestId)
+  }
+
   return (
-    <div className="space-y-2 py-1">
+    <div className="flex flex-row gap-2 py-1 overflow-x-auto">
       {sorted.map(ev => {
         const isMe = ev.actor_id === userId
+        const isLatest = ev.id === latestId
+        const isSelected = ev.id === selectedId
         return (
-          <div key={ev.id} className={`flex ${isMe ? 'flex-row-reverse' : ''}`}>
-            <div className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${isMe ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[10px] font-medium opacity-70">{isMe ? 'You' : 'Other party'}</span>
-                <span className="text-[10px] opacity-50">·</span>
-                <span className="text-[10px] opacity-70">{EVENT_LABELS[ev.event_type]}</span>
-              </div>
-              {ev.amount !== null && <p className="font-bold">${Number(ev.amount).toFixed(2)}</p>}
-              {ev.message && <p className="text-xs opacity-80 mt-0.5">{ev.message}</p>}
-              <p className="text-[10px] opacity-40 mt-1">
-                {new Date(ev.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </p>
+          <button
+            key={ev.id}
+            onClick={selectable ? () => handleSelect(ev.id) : undefined}
+            disabled={!selectable}
+            className={`w-52 shrink-0 text-left rounded-lg border px-3 py-2.5 transition-colors
+              ${selectable
+                ? isSelected ? 'border-foreground bg-background shadow-sm' : 'bg-muted/50 hover:bg-muted'
+                : 'bg-muted/50 cursor-default'}`}
+          >
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-xs font-semibold truncate">{isMe ? 'You' : otherName}</span>
+              <span className={`text-[10px] shrink-0 ${isLatest ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
+                {isLatest ? 'Current' : EVENT_LABELS[ev.event_type]}
+              </span>
             </div>
-          </div>
+            {ev.amount !== null && (
+              <p className="font-bold text-base">${Number(ev.amount).toFixed(2)}</p>
+            )}
+            {ev.message && (
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">&ldquo;{ev.message}&rdquo;</p>
+            )}
+            <p className="text-[10px] text-muted-foreground mt-1">
+              {new Date(ev.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </button>
         )
       })}
     </div>
@@ -64,6 +99,7 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
   const [markingAsSold, setMarkingAsSold] = useState(false)
   const [relisting, setRelisting] = useState(false)
   const [markingComplete, setMarkingComplete] = useState(false)
+  const [respondMode, setRespondMode] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const listing = thread.listings
@@ -122,7 +158,7 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
               <CircleUser className="h-4 w-4 text-muted-foreground" />
             )}
             <span className="text-xs text-muted-foreground truncate">
-              {isSeller ? (otherParty?.display_name || otherParty?.email || 'A buyer') : 'Seller'}
+              {otherParty?.display_name || otherParty?.email || (isSeller ? 'A buyer' : 'Seller')}
               {' · '}
               <span className="font-medium text-foreground">${Number(thread.amount).toFixed(2)}</span>
             </span>
@@ -135,7 +171,13 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
       {/* Expanded detail */}
       {expanded && (
         <div className="border-t px-4 pb-4 space-y-3">
-          <EventTimeline events={thread.offer_events} userId={userId} />
+          <EventTimeline
+            events={thread.offer_events}
+            userId={userId}
+            otherName={otherParty?.display_name || otherParty?.email?.split('@')[0] || (isSeller ? 'Buyer' : 'Seller')}
+            selectable={thread.offer_events.length > 1}
+            onLatestSelected={setRespondMode}
+          />
 
           {thread.status === 'accepted' && (
             <>
@@ -195,8 +237,8 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          {/* Buyer/seller actions when it's my turn */}
-          {isActive && isMyTurn && !showCounter && (
+          {/* Buyer/seller actions — shown immediately if single event, or when current card is selected */}
+          {isActive && isMyTurn && (respondMode || thread.offer_events.length <= 1) && !showCounter && (
             <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
@@ -221,7 +263,7 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
             </div>
           )}
 
-          {isActive && isMyTurn && showCounter && thread.offer_type !== 'claim' && (
+          {isActive && isMyTurn && (respondMode || thread.offer_events.length <= 1) && showCounter && thread.offer_type !== 'claim' && (
             <div className="space-y-2">
               <div className="relative w-36">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
@@ -240,6 +282,7 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
               </div>
             </div>
           )}
+
 
           {isActive && !isMyTurn && (
             <p className="text-xs text-muted-foreground italic">Waiting for the other party to respond…</p>

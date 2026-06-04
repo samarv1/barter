@@ -24,10 +24,12 @@ export default function SaveButton(props: Props) {
     )
   }
 
+  const { listingId } = props
+
   function handleClick() {
     setSaved(s => !s)
     startTransition(async () => {
-      await toggleSaveListing(props.listingId, saved)
+      await toggleSaveListing(listingId, saved)
     })
   }
 

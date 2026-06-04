@@ -10,7 +10,7 @@ export default async function Navbar() {
   const { data: { user } } = await supabase.auth.getUser()
 
   let avatarUrl: string | undefined
-  let unreadCount = 0
+  let hasUnread = false
 
   if (user) {
     const [{ data: profile }, { data: unread }] = await Promise.all([
@@ -18,8 +18,7 @@ export default async function Navbar() {
       supabase.from('notifications').select('id').eq('user_id', user.id).eq('read', false).limit(1),
     ])
     avatarUrl = profile?.avatar_url ?? (user.user_metadata.avatar_url as string | undefined)
-    unreadCount = unread?.length ?? 0
-    console.log('[Navbar] user:', user.id, 'unreadCount:', unreadCount, 'raw:', JSON.stringify(unread))
+    hasUnread = (unread?.length ?? 0) > 0
   }
 
   return (
@@ -40,7 +39,7 @@ export default async function Navbar() {
             <Button asChild variant="ghost" size="icon" className="relative">
               <Link href="/inbox">
                 <Bell className="h-5 w-5" />
-                <NotificationBubble initialUnread={unreadCount > 0} userId={user.id} />
+                <NotificationBubble initialUnread={hasUnread} userId={user.id} />
                 <span className="sr-only">Inbox</span>
               </Link>
             </Button>

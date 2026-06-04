@@ -138,8 +138,7 @@ export default function OfferSection({ listing, existingOffer, events, userId, s
   // Awaiting seller
   if (existingOffer && existingOffer.status !== 'declined' && existingOffer.current_turn === 'seller') {
     return (
-      <div className="pt-2 border-t space-y-1">
-        <EventTimeline events={events} userId={userId} />
+      <div className="pt-2 border-t">
         <p className="text-sm text-muted-foreground italic">
           {existingOffer.offer_type === 'claim' ? 'Awaiting seller confirmation…' : 'Awaiting seller response…'}
         </p>

@@ -11,6 +11,7 @@ interface UploadedPhoto {
 
 interface Props {
   onChange: (keys: string[]) => void
+  initialPhotoKeys?: string[]
 }
 
 async function normalizeFile(file: File): Promise<File> {
@@ -29,8 +30,10 @@ async function normalizeFile(file: File): Promise<File> {
   return new File([converted], newName, { type: 'image/jpeg' })
 }
 
-export default function PhotoUploader({ onChange }: Props) {
-  const [photos, setPhotos] = useState<UploadedPhoto[]>([])
+export default function PhotoUploader({ onChange, initialPhotoKeys }: Props) {
+  const [photos, setPhotos] = useState<UploadedPhoto[]>(() =>
+    (initialPhotoKeys ?? []).map(key => ({ key, previewUrl: getPublicUrl(key) }))
+  )
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)

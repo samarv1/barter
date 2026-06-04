@@ -1,6 +1,6 @@
 'use client'
-import { createClient } from '@/lib/supabase/client'
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getUnreadStatus } from '@/actions/notifications'
 
 export default function NotificationBubble({
   initialUnread,
@@ -12,29 +12,16 @@ export default function NotificationBubble({
   const [hasUnread, setHasUnread] = useState(initialUnread)
 
   useEffect(() => {
-    const supabase = createClient()
-    const channel = supabase
-      .channel('notification-badge')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-        () => setHasUnread(true)
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-        async () => {
-          const { data } = await supabase
-            .from('notifications')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('read', false)
-            .limit(1)
-          setHasUnread((data?.length ?? 0) > 0)
-        }
-      )
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    getUnreadStatus().then(setHasUnread)
+
+    const interval = setInterval(() => getUnreadStatus().then(setHasUnread), 30_000)
+    const onFocus = () => getUnreadStatus().then(setHasUnread)
+    window.addEventListener('focus', onFocus)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', onFocus)
+    }
   }, [userId])
 
   if (!hasUnread) return null
