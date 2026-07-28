@@ -62,7 +62,7 @@ export default async function HomePage({
                   {listing.status === 'claimed' && (
                     <div className="absolute top-2 left-2 z-10">
                       <span className="bg-amber-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                        Pending sale
+                        Pending pickup
                       </span>
                     </div>
                   )}

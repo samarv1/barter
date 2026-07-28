@@ -76,6 +76,8 @@ export async function claimAtListedPrice(listingId: string) {
 }
 
 export async function makeOffer(listingId: string, amount: number, message?: string) {
+  if (amount <= 0) throw new Error('Offer amount must be greater than $0')
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
@@ -237,6 +239,7 @@ export async function respondToOffer(
   } else if (action === 'counter') {
     if ((offer as any).offer_type === 'claim') throw new Error('Cannot counter a full-price claim')
     if (amount === undefined) throw new Error('Amount required for counter')
+    if (amount <= 0) throw new Error('Counter amount must be greater than $0')
     const nextTurn = isSeller ? 'buyer' : 'seller'
     await supabase.from('offers').update({ status: 'countered', current_turn: nextTurn, amount, message: message || null }).eq('id', offerId)
     await service.from('offer_events').insert({

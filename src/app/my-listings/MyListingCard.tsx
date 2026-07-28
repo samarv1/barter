@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { getPublicUrl } from '@/lib/s3'
-import { markAsSold, relistFromAccepted, deleteMyListing } from '@/actions/listings'
+import { markAsSold, relistFromAccepted, deleteMyListing, completeSale } from '@/actions/listings'
 
 type Listing = {
   id: string
@@ -31,7 +31,7 @@ function formatPrice(price: number | null, isFree: boolean) {
   return `$${Number(price).toFixed(0)}`
 }
 
-type ConfirmAction = 'sold' | 'relist' | 'delete' | null
+type ConfirmAction = 'sold' | 'relist' | 'delete' | 'confirm' | null
 
 export default function MyListingCard({ listing, offerSummary }: Props) {
   const router = useRouter()
@@ -124,15 +124,26 @@ export default function MyListingCard({ listing, offerSummary }: Props) {
               </>
             )}
             {isClaimed && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs h-7 px-2"
-                disabled={isPending}
-                onClick={() => setConfirming('relist')}
-              >
-                Re-list
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs h-7 px-2"
+                  disabled={isPending}
+                  onClick={() => setConfirming('confirm')}
+                >
+                  Confirm pickup
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs h-7 px-2 text-muted-foreground"
+                  disabled={isPending}
+                  onClick={() => setConfirming('relist')}
+                >
+                  Re-list
+                </Button>
+              </>
             )}
           </div>
         ) : (
@@ -141,6 +152,7 @@ export default function MyListingCard({ listing, offerSummary }: Props) {
               {confirming === 'sold' && 'Mark as sold?'}
               {confirming === 'relist' && 'Re-activate this listing?'}
               {confirming === 'delete' && 'Delete permanently?'}
+              {confirming === 'confirm' && 'Confirm pickup happened?'}
             </span>
             <Button
               size="sm"
@@ -151,6 +163,7 @@ export default function MyListingCard({ listing, offerSummary }: Props) {
                 if (confirming === 'sold') run(() => markAsSold(listing.id))
                 else if (confirming === 'relist') run(() => relistFromAccepted(listing.id))
                 else if (confirming === 'delete') run(() => deleteMyListing(listing.id))
+                else if (confirming === 'confirm') run(() => completeSale(listing.id))
               }}
             >
               Confirm

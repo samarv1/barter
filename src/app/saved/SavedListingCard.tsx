@@ -64,7 +64,7 @@ export default function SavedListingCard({ listing }: { listing: Listing }) {
 
         {(isClaimed || isSold) && (
           <Badge variant="secondary" className="w-fit text-[10px] px-1.5 py-0 h-4">
-            {isSold ? 'Sold' : 'Pending sale'}
+            {isSold ? 'Sold' : 'Pending pickup'}
           </Badge>
         )}
 

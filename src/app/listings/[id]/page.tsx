@@ -22,7 +22,7 @@ const AVAILABILITY_LABELS: Record<string, string> = {
 
 function formatPrice(price: number | null, isFree: boolean) {
   if (isFree || price === null) return 'Free'
-  return `$${Number(price).toFixed(2)}`
+  return `$${Number(price).toFixed(0)}`
 }
 
 export default async function ListingDetailPage({
@@ -131,7 +131,7 @@ export default async function ListingDetailPage({
               <div className="flex items-center gap-1 shrink-0">
                 {(listing.status === 'claimed' || listing.status === 'sold') && (
                   <Badge variant="secondary">
-                    {listing.status === 'sold' ? 'Sold' : 'Pending sale'}
+                    {listing.status === 'sold' ? 'Sold' : 'Pending pickup'}
                   </Badge>
                 )}
                 {!isSeller && (
@@ -200,7 +200,7 @@ export default async function ListingDetailPage({
             {!isSeller && listing.status === 'claimed' && !buyerOffer && (
               <div className="pt-4 border-t">
                 <p className="text-sm text-muted-foreground">
-                  This listing has a pending sale.{user && isSaved ? " You'll be notified if it gets relisted." : user ? ' Save it to get notified if it falls through and gets relisted.' : ''}
+                  This listing has a pending pickup.{user && isSaved ? " You'll be notified if it gets relisted." : user ? ' Save it to get notified if it falls through and gets relisted.' : ''}
                 </p>
               </div>
             )}
