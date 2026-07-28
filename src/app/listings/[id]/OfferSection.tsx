@@ -56,7 +56,7 @@ const EVENT_LABELS: Record<string, string> = {
 
 function formatAmount(amount: number | null, isFree: boolean) {
   if (isFree || amount === null || amount === 0) return 'Free'
-  return `$${Number(amount).toFixed(2)}`
+  return `$${Number(amount).toFixed(0)}`
 }
 
 function EventTimeline({ events, userId }: { events: OfferEvent[]; userId: string }) {
@@ -118,7 +118,7 @@ export default function OfferSection({ listing, existingOffer, events, userId, s
       <div className="pt-4 border-t space-y-3">
         <EventTimeline events={events} userId={userId} />
         <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 space-y-0.5 text-sm text-green-800">
-          <p className="font-semibold">Claimed — arrange pickup with the seller</p>
+          <p className="font-semibold">Offer accepted — arrange pickup with the seller</p>
           {sellerProfile && (
             <>
               {sellerProfile.display_name && (
@@ -222,7 +222,7 @@ export default function OfferSection({ listing, existingOffer, events, userId, s
       {existingOffer?.status === 'declined' && (
         <>
           <EventTimeline events={events} userId={userId} />
-          <p className="text-xs text-muted-foreground italic">
+          <p className="text-sm text-muted-foreground">
             {events.filter(e => e.event_type === 'declined').at(-1)?.actor_id === userId
               ? 'You declined — make a new offer below.'
               : 'The seller declined your offer — make a new one below.'}

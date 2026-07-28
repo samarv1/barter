@@ -74,7 +74,7 @@ function EventTimeline({
               </span>
             </div>
             {ev.amount !== null && (
-              <p className="font-bold text-base">${Number(ev.amount).toFixed(2)}</p>
+              <p className="font-bold text-base">${Number(ev.amount).toFixed(0)}</p>
             )}
             {ev.message && (
               <p className="text-xs text-muted-foreground mt-0.5 truncate">&ldquo;{ev.message}&rdquo;</p>
@@ -160,7 +160,7 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
             <span className="text-xs text-muted-foreground truncate">
               {otherParty?.display_name || otherParty?.email || (isSeller ? 'A buyer' : 'Seller')}
               {' · '}
-              <span className="font-medium text-foreground">${Number(thread.amount).toFixed(2)}</span>
+              <span className="font-medium text-foreground">${Number(thread.amount).toFixed(0)}</span>
             </span>
           </div>
         </div>
@@ -245,7 +245,7 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
                 disabled={isPending}
                 onClick={() => run(() => respondToOffer(thread.id, 'accept'))}
               >
-                Accept ${Number(thread.amount).toFixed(2)}
+                Accept ${Number(thread.amount).toFixed(0)}
               </Button>
               {thread.offer_type !== 'claim' && (
                 <Button size="sm" variant="outline" disabled={isPending} onClick={() => setShowCounter(true)}>
@@ -283,6 +283,10 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
             </div>
           )}
 
+
+          {isActive && isMyTurn && !respondMode && thread.offer_events.length > 1 && !showCounter && (
+            <p className="text-xs text-muted-foreground">Select the current offer above to respond.</p>
+          )}
 
           {isActive && !isMyTurn && (
             <p className="text-xs text-muted-foreground italic">Waiting for the other party to respond…</p>
@@ -334,9 +338,12 @@ export default function ThreadList({ threads, userId }: { threads: Thread[]; use
 
   if (threads.length === 0) {
     return (
-      <div className="text-center py-20 text-muted-foreground">
+      <div className="text-center py-20 text-muted-foreground space-y-3">
         <p>No offers yet.</p>
-        <Link href="/my-listings" className="mt-2 inline-block text-sm text-primary hover:underline">Go to my listings →</Link>
+        <div className="flex flex-col gap-1.5 items-center text-sm">
+          <Link href="/" className="text-primary hover:underline">Browse listings to make an offer →</Link>
+          <Link href="/listings/new" className="text-primary hover:underline">Post a listing to receive offers →</Link>
+        </div>
       </div>
     )
   }

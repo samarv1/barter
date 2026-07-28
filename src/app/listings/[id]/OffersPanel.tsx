@@ -105,7 +105,7 @@ function OfferCard({ offer, isFree }: { offer: SellerOffer; isFree: boolean }) {
             className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
             onClick={() => setShowHistory(v => !v)}
           >
-            {showHistory ? 'Hide history' : `Show history (${sortedEvents.length} event${sortedEvents.length !== 1 ? 's' : ''})`}
+            {showHistory ? 'Hide history' : 'Show history'}
           </button>
           {showHistory && (
             <div className="mt-2 space-y-1.5 pl-2 border-l">
