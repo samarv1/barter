@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getPublicUrl } from '@/lib/s3'
+import { getSamplePhoto } from '@/lib/sample-photos'
 import { Card, CardContent } from '@/components/ui/card'
 import Navbar from '@/components/nav/Navbar'
 import FilterBar from '@/components/listings/FilterBar'
+import ListingPhoto from '@/components/listings/ListingPhoto'
 
 function formatPrice(price: number | null, isFree: boolean) {
   if (isFree || price === null) return 'Free'
@@ -66,16 +68,11 @@ export default async function HomePage({
                       </span>
                     </div>
                   )}
-                  <div className="aspect-square bg-muted overflow-hidden rounded-t-xl">
-                    {listing.photo_keys[0] && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={getPublicUrl(listing.photo_keys[0])}
-                        alt={listing.title}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
+                  <ListingPhoto
+                    src={listing.photo_keys[0] ? getPublicUrl(listing.photo_keys[0]) : getSamplePhoto(listing.id)}
+                    alt={listing.title}
+                    className="aspect-square rounded-t-xl"
+                  />
                   <CardContent className="p-3 space-y-1">
                     <p className="text-sm font-medium truncate">{listing.title}</p>
                     <p className="text-sm font-bold">

@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getPublicUrl } from '@/lib/s3'
+import { getSamplePhoto } from '@/lib/sample-photos'
+import ListingPhoto from '@/components/listings/ListingPhoto'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -109,6 +111,9 @@ export default async function ListingDetailPage({
         <Card className="p-0 gap-0 overflow-hidden">
           {/* Photo gallery */}
           <div className="flex gap-2 p-4 overflow-x-auto">
+            {listing.photo_keys.length === 0 && (
+              <ListingPhoto src={getSamplePhoto(listing.id)} alt={listing.title} className="h-72 w-full rounded-md" />
+            )}
             {listing.photo_keys.map((key: string, i: number) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img

@@ -11,6 +11,8 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { access } from 'node:fs/promises'
+import seedListings from './fixtures/listing-photos.json' with { type: 'json' }
 
 const SEED_PASSWORD = process.env.SEED_PASSWORD
 const SEED_USERS = [
@@ -113,6 +115,7 @@ async function seed({ seller, buyer1, buyer2 }) {
 
   // ── 1. Active, no offers ────────────────────────────────────────────────
   await insertListing(seller, {
+    id: seedListings.couch.id,
     title: 'Couch (Tan 3-seater)',
     description: 'Comfortable couch, minor wear on armrests. Moving out end of June.',
     price: 150,
@@ -125,6 +128,7 @@ async function seed({ seller, buyer1, buyer2 }) {
 
   // ── 2. Active + pending offer, seller's turn ────────────────────────────
   const l2 = await insertListing(seller, {
+    id: seedListings.desk.id,
     title: 'Standing Desk (60")',
     description: 'Height-adjustable. Great condition, all parts included.',
     price: 120,
@@ -147,6 +151,7 @@ async function seed({ seller, buyer1, buyer2 }) {
 
   // ── 3. Active + counter-offer, buyer's turn ─────────────────────────────
   const l3 = await insertListing(seller, {
+    id: seedListings.uLock.id,
     title: 'Kryptonite U-Lock',
     description: 'Series 2, used one year. Still very secure.',
     price: 30,
@@ -169,6 +174,7 @@ async function seed({ seller, buyer1, buyer2 }) {
 
   // ── 4. Active + claim at listed price, seller's turn ───────────────────
   const l4 = await insertListing(seller, {
+    id: seedListings.books.id,
     title: 'CS Textbook Bundle',
     description: 'ECS 20, ECS 36A, ECS 122A. Good condition, minimal highlighting.',
     price: 45,
@@ -190,6 +196,7 @@ async function seed({ seller, buyer1, buyer2 }) {
 
   // ── 5. Active + two offers from different buyers ────────────────────────
   const l5 = await insertListing(seller, {
+    id: seedListings.monitor.id,
     title: 'Monitor (24", 1080p)',
     description: 'Dell, works perfectly. Includes stand and power cable.',
     price: 90,
@@ -220,6 +227,7 @@ async function seed({ seller, buyer1, buyer2 }) {
 
   // ── 6. Active + declined offer ──────────────────────────────────────────
   const l6 = await insertListing(seller, {
+    id: seedListings.chair.id,
     title: 'Ergonomic Desk Chair',
     description: 'Mesh back, lumbar support. Minor scuff on left armrest.',
     price: 65,
@@ -242,6 +250,7 @@ async function seed({ seller, buyer1, buyer2 }) {
 
   // ── 7. Free listing, no offers ──────────────────────────────────────────
   await insertListing(seller, {
+    id: seedListings.lamp.id,
     title: 'Floor Lamp',
     description: 'Works fine. Just don\'t need it anymore.',
     price: null,
@@ -254,6 +263,7 @@ async function seed({ seller, buyer1, buyer2 }) {
 
   // ── 8. Claimed (pending pickup) ─────────────────────────────────────────
   const l8 = await insertListing(seller, {
+    id: seedListings.coffeeTable.id,
     title: 'Coffee Table (IKEA Hemnes)',
     description: 'Good condition, small scratch on top. Easy disassembly.',
     price: 60,
@@ -315,6 +325,9 @@ async function main() {
   }
 
   try {
+    for (const { photo } of Object.values(seedListings)) {
+      await access(new URL(`../public${photo}`, import.meta.url))
+    }
     await wipe()
     const ids = await createUsers()
     await seed({

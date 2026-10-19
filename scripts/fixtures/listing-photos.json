@@ -1,0 +1,10 @@
+{
+  "lamp": { "id": "46f4a3f9-a2a5-41f7-b6b6-8641c1ccf66d", "photo": "/images/samples/lamp.jpg" },
+  "chair": { "id": "c7da45aa-02bd-4cf9-a674-c02f8982c9b7", "photo": "/images/samples/chair.jpg" },
+  "monitor": { "id": "035be6f3-4003-4d3f-a769-c3a01bd10178", "photo": "/images/samples/monitor.jpg" },
+  "books": { "id": "a045b254-aa73-431f-a9db-0bf1cf36a546", "photo": "/images/samples/books.jpg" },
+  "uLock": { "id": "d9698f9f-252f-48fb-9d24-53cc86a1cad2", "photo": "/images/samples/u-lock.jpg" },
+  "desk": { "id": "9477c50c-62ac-4b6d-b86d-3d97b51934b1", "photo": "/images/samples/desk.jpg" },
+  "couch": { "id": "f01b6ddb-ee0c-4a49-a702-b9d8e9855ba0", "photo": "/images/samples/couch.jpg" },
+  "coffeeTable": { "id": "8dd03013-d628-4312-afb0-afcf603dbbb9", "photo": "/images/samples/coffee-table.jpg" }
+}

@@ -15,7 +15,11 @@ const CATEGORIES = [
   { value: '_all', label: 'All categories' },
   { value: 'furniture', label: 'Furniture' },
   { value: 'electronics', label: 'Electronics' },
+  { value: 'clothing', label: 'Clothing' },
+  { value: 'books', label: 'Books' },
+  { value: 'appliances', label: 'Appliances' },
   { value: 'bikes', label: 'Bikes' },
+  { value: 'sports', label: 'Sports' },
   { value: 'other', label: 'Other' },
 ]
 
