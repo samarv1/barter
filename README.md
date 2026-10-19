@@ -2,6 +2,8 @@
 
 A marketplace for the UC Davis community to sell, give away, and find items around student move-in and move-out dates.
 
+Barter is a portfolio project shared as source code. There is no hosted demo, and no public launch is planned. The instructions below are for running your own development setup.
+
 ## The problem
 
 Finding a couch is only half the problem when you're moving between student apartments. You also need it to be available when your lease starts, agree on a price, and know whether someone else has already claimed it. Barter brings availability, negotiation, and pickup status into the listing itself.
@@ -67,13 +69,13 @@ For a new Supabase project, run `supabase/schema.sql` once in its SQL editor, th
 
 Enable the Google provider in Supabase Auth and configure its Google client ID and secret. In the Google OAuth client, register the callback URL supplied by Supabase. In Supabase's Auth URL configuration, allow `http://localhost:3000/auth/callback` and set the local site URL to `http://localhost:3000`.
 
-The app uses Google sign-in. Posting requires an `@ucdavis.edu` account; signing in with another domain allows buyer flows. When deploying, configure the equivalent URLs for your domain.
+The app uses Google sign-in. Posting requires an `@ucdavis.edu` account; signing in with another domain allows buyer flows.
 
 ### Photos
 
 Configure an S3 bucket for public listing and avatar images. The current app builds direct S3 object URLs, so uploaded objects need public read access. Do not use a bucket that contains private files. Give the server's AWS credentials permission to upload and delete objects in this dedicated bucket, and allow browser `PUT` requests from `http://localhost:3000` in its CORS configuration, including the `Content-Type` header.
 
-Set both the server and `NEXT_PUBLIC_` bucket/region variables to the same values. Add your deployed origin to CORS when deploying.
+Set both the server and `NEXT_PUBLIC_` bucket/region variables to the same values.
 
 ### Email
 
