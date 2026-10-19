@@ -1,13 +1,14 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL ?? 'Barter <onboarding@resend.dev>'
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
 
 async function send(to: string, subject: string, text: string) {
   if (!process.env.RESEND_API_KEY) return
   try {
-    await resend.emails.send({ from: FROM, to: [to], subject, text })
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const { error } = await resend.emails.send({ from: FROM, to: [to], subject, text })
+    if (error) console.error('[email] send failed', error)
   } catch (err) {
     console.error('[email] send failed', err)
   }
@@ -50,7 +51,7 @@ export async function emailCounterOffer(to: string, listingTitle: string, amount
   await send(
     to,
     `Counter-offer on "${listingTitle}"`,
-    `A counter-offer of $${amount.toFixed(2)} was made on "${listingTitle}".\n\nView and respond: ${BASE_URL}/inbox`
+    `A counter-offer of $${amount.toFixed(2)} was made on "${listingTitle}".\n\nView and respond: ${BASE_URL}/listings/${listingId}`
   )
 }
 
