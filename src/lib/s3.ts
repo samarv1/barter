@@ -10,7 +10,6 @@ export const s3 = new S3Client({
 })
 
 const BUCKET = process.env.S3_BUCKET_NAME!
-const REGION = process.env.AWS_REGION!
 const PUBLIC_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET_NAME!
 const PUBLIC_REGION = process.env.NEXT_PUBLIC_AWS_REGION!
 

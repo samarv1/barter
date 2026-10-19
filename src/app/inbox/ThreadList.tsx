@@ -304,7 +304,7 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
-                  <p className="text-xs text-muted-foreground">This will remove your listing and decline all open offers. Do this if you've sold it elsewhere.</p>
+                  <p className="text-xs text-muted-foreground">This will remove your listing and decline all open offers. Do this if you&apos;ve sold it elsewhere.</p>
                   <Button
                     size="sm"
                     variant="destructive"

@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { isOwnedObjectKey, validateListingInput } from '@/lib/validation'
 import { deleteObjects } from '@/lib/s3'
 import { emailListingSold, emailListingRelisted } from '@/lib/email'
 
@@ -30,6 +31,9 @@ export async function updateListing(
 
   if (!listing || listing.seller_id !== user.id) throw new Error('Unauthorized')
   if (listing.status !== 'active') throw new Error('Only active listings can be edited')
+
+  const validationError = validateListingInput(fields, user.id)
+  if (validationError) throw new Error(validationError)
 
   const { error } = await supabase
     .from('listings')
@@ -65,7 +69,7 @@ export async function deleteListing(id: string) {
   if (!listing || listing.seller_id !== user.id) throw new Error('Unauthorized')
 
   if (listing.photo_keys?.length > 0) {
-    await deleteObjects(listing.photo_keys)
+    await deleteObjects(listing.photo_keys.filter((key: unknown) => isOwnedObjectKey(key, user.id, 'listings')))
   }
 
   await supabase.from('listings').delete().eq('id', id)
@@ -265,7 +269,7 @@ export async function deleteMyListing(id: string) {
   if (!listing || listing.seller_id !== user.id) throw new Error('Unauthorized')
 
   if (listing.photo_keys?.length > 0) {
-    await deleteObjects(listing.photo_keys)
+    await deleteObjects(listing.photo_keys.filter((key: unknown) => isOwnedObjectKey(key, user.id, 'listings')))
   }
 
   await supabase.from('listings').delete().eq('id', id)

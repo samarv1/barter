@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { validateListingInput } from '@/lib/validation'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
@@ -19,7 +20,14 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const body = await request.json()
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+  const validationError = validateListingInput(body, user.id)
+  if (validationError) return NextResponse.json({ error: validationError }, { status: 400 })
   const { title, description, price, is_free, category, availability, photo_keys } = body
 
   if (!photo_keys || photo_keys.length === 0) {
