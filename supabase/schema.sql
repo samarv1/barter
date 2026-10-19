@@ -1,5 +1,6 @@
 -- Davis Marketplace — full schema
--- Run this once in the Supabase SQL editor (Dashboard → SQL Editor → New query)
+-- Fresh projects: run this baseline once, then every file in supabase/migrations/
+-- in filename order. Existing deployments: apply only unapplied migrations.
 
 -- ─────────────────────────────────────────────
 -- PROFILES

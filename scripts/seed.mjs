@@ -4,7 +4,7 @@
  * Usage:
  *   node --env-file=.env.local scripts/seed.mjs
  *
- * Test accounts (all use the same password below):
+ * Test accounts (use SEED_PASSWORD from your local environment):
  *   seed-seller@davis.test  — posts all listings
  *   seed-buyer1@davis.test  — most offers
  *   seed-buyer2@davis.test  — some offers
@@ -12,7 +12,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-const SEED_PASSWORD = 'SeedTest123!'
+const SEED_PASSWORD = process.env.SEED_PASSWORD
 const SEED_USERS = [
   { email: 'seed-seller@davis.test', displayName: 'Taylor (Seller)' },
   { email: 'seed-buyer1@davis.test', displayName: 'Jordan (Buyer 1)' },
@@ -302,6 +302,12 @@ async function seed({ seller, buyer1, buyer2 }) {
 // ─── main ──────────────────────────────────────────────────────────────────
 
 async function main() {
+  if (process.env.NODE_ENV === 'production' || process.env.SEED_TARGET_URL !== process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    throw new Error('Use a disposable development database and explicitly set SEED_TARGET_URL to its Supabase URL.')
+  }
+  if (!SEED_PASSWORD || SEED_PASSWORD.length < 16) {
+    throw new Error('Set SEED_PASSWORD to a unique development-only password of at least 16 characters.')
+  }
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.')
     console.error('Run with: node --env-file=.env.local scripts/seed.mjs')
@@ -318,7 +324,7 @@ async function main() {
     })
 
     console.log('\n✓ Seed complete.\n')
-    console.log(`Password for all accounts: ${SEED_PASSWORD}\n`)
+    console.log('Account passwords use SEED_PASSWORD from your environment.\n')
     console.log('Accounts:')
     for (const u of SEED_USERS) {
       console.log(`  ${u.email.padEnd(30)} ${u.displayName}`)
