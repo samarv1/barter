@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { getPublicUrl } from '@/lib/s3'
+import { getSamplePhoto } from '@/lib/sample-photos'
 import { toggleSaveListing } from '@/actions/saves'
 
 type Listing = {
@@ -39,15 +40,16 @@ export default function SavedListingCard({ listing }: { listing: Listing }) {
 
   const isClaimed = listing.status === 'claimed'
   const isSold = listing.status === 'sold'
+  const photo = listing.photo_keys[0] ? getPublicUrl(listing.photo_keys[0]) : getSamplePhoto(listing.id)
 
   return (
     <Card className="p-0 gap-0 flex flex-col">
       <Link href={`/listings/${listing.id}`}>
         <div className={`aspect-square bg-muted overflow-hidden rounded-t-xl ${isClaimed || isSold ? 'opacity-60' : ''}`}>
-          {listing.photo_keys[0] && (
+          {photo && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={getPublicUrl(listing.photo_keys[0])}
+              src={photo}
               alt={listing.title}
               className="w-full h-full object-cover"
             />

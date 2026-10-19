@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { getPublicUrl } from '@/lib/s3'
+import { getSamplePhoto } from '@/lib/sample-photos'
 import { respondToOffer } from '@/actions/offers'
 import { markAsSold, relistFromAccepted, completeSale } from '@/actions/listings'
 import type { Thread, OfferEvent } from './page'
@@ -111,7 +112,7 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
   const otherParty = isSeller
     ? thread.profiles
     : listing.profiles as typeof thread.profiles
-  const thumb = listing.photo_keys?.[0]
+  const thumb = listing.photo_keys?.[0] ? getPublicUrl(listing.photo_keys[0]) : getSamplePhoto(listing.id)
 
   function run(fn: () => Promise<void>) {
     setError(null)
@@ -137,7 +138,7 @@ function ThreadCard({ thread, userId }: { thread: Thread; userId: string }) {
         <div className="h-12 w-12 rounded-md bg-muted overflow-hidden shrink-0">
           {thumb ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={getPublicUrl(thumb)} alt={listing.title} className="h-full w-full object-cover" />
+            <img src={thumb} alt={listing.title} className="h-full w-full object-cover" />
           ) : null}
         </div>
 
